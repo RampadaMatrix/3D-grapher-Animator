@@ -2731,32 +2731,28 @@
                 this.FIXED_TIMESTEP = 1 / 60;
                 this.accumulator = 0;
                
-            
                 this.renderAllPlotsDebounced = this.debounce(() => this.plotter.renderAllPlots(), 50);
             
-                // --- START: Preloading Logic ---
+                // --- START: Preloading and Tutorial Logic ---
                 const loadedFromUrl = this.loadStateFromURL();
-                if (!loadedFromUrl && !localStorage.getItem('hasVisitedPlotterPro')) {
+                if (!loadedFromUrl && !localStorage.getItem('plotterProTutorialCompleted')) {
                     // This block runs ONLY ONCE for a new visitor
                     this.switchMode('playground', true);
                     const atomPreset = this.playgroundPresets['Atom'];
                     if (atomPreset) {
                         this.loadPlaygroundPreset(atomPreset);
-                        // Automatically play the animation for the full effect
-                        setTimeout(() => this.playAllAnimations(), 1500);
                     }
-                    // Set a flag in the browser's storage to prevent preloading again
-                    localStorage.setItem('hasVisitedPlotterPro', 'true');
+                    // Start the tutorial after a short delay to allow the scene to render
+                    setTimeout(() => this.startTutorial(), 500);
                 } else if (!loadedFromUrl) {
-                    // This block runs for RETURNED visitors
+                    // This block runs for returned visitors
                     this.switchMode('playground', true);
-                    // ** FIX: Changed this to 'Atom' to make it the default for everyone **
                     const defaultPreset = this.playgroundPresets['Atom'];
                     if (defaultPreset) {
                         this.loadPlaygroundPreset(defaultPreset);
                     }
                 }
-                // --- END: Preloading Logic ---
+                // --- END: Preloading and Tutorial Logic ---
             
                 this.renderGlobalAnimationTray();
             }
@@ -3586,6 +3582,7 @@
                 this.currentTutorialStep = 0;
                 document.getElementById('tutorial-modal-overlay')?.classList.remove('hidden');
                 
+                // This check prevents adding a new object if the Atom preset is already loaded
                 if(this.playgroundObjects.length === 0) {
                     this.addPlaygroundObject('surface', true);
                 }
@@ -3599,6 +3596,8 @@
                 this.tutorialIsActive = false;
                 this.renderGlobalAnimationTray();
             
+                // Start the animations after the tutorial is done
+                this.playAllAnimations();
             }
             
             showTutorialStep(stepIndex) {
