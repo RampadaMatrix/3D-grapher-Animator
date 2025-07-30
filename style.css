@@ -954,13 +954,14 @@
 
         .preset-card:hover { transform: translateY(-2px); background-color: var(--bg-hover); }
 
-        .zen-mode .top-bar, .zen-mode .right-toolbar { display: none; }
-        .zen-mode .app-grid { grid-template-columns: 380px 1fr 0; }
-        .zen-mode .status-bar { right: 0; }
-        .fullscreen-zen-mode .top-bar, .fullscreen-zen-mode .right-toolbar, .fullscreen-zen-mode .left-panel { display: none; }
-        .fullscreen-zen-mode .app-grid { grid-template-columns: 1fr; grid-template-rows: 1fr; }
-        .fullscreen-zen-mode #global-animation-tray { display: none; }
-        .fullscreen-zen-mode .status-bar { display: none; }
+        .fullscreen-mode .main-viewport {
+            display: block;
+        }
+        
+        .fullscreen-mode .app-grid {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr;
+        }
 
         .exit-mode-btn { position: absolute; top: 20px; right: 20px; z-index: 100; display: none; background: var(--bg-panel); color: var(--text-light); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border-color); cursor: pointer; font-size: 14px; font-weight: 600; align-items: center; gap: 8px; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
         .exit-mode-btn:hover { background: var(--bg-hover); border-color: var(--color-primary); }
@@ -1287,6 +1288,106 @@
             pointer-events: auto;
         }
 
+        @media (max-width: 768px) and (orientation: portrait) {
+            /* Hide the main application grid */
+            .app-grid {
+                display: none !important; 
+            }
+        
+            /* Style and display the rotation prompt */
+            #rotate-prompt {
+                display: flex !important; /* Use !important to override other display properties */
+                position: fixed;
+                inset: 0;
+                background-color: var(--bg-main-start);
+                z-index: 9999;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                padding: 1rem;
+            }
+        }
+
+
+        @media (max-width: 1200px) and (orientation: landscape) {
+            body {
+                overflow: auto;
+            }
+        
+            .app-grid {
+                width: 1920px;
+                height: 1080px;
+        
+                --scale-x: calc(100vw / 1920px);
+                --scale-y: calc(100vh / 1080px);
+                --scale: min(var(--scale-x), var(--scale-y));
+                
+                /* Set your desired zoom level here */
+                --zoom-factor: 1.5; 
+        
+                transform-origin: top left;
+                transform: scale(calc(var(--scale) * var(--zoom-factor)));
+            }
+            
+            #info-modal-overlay, #tutorial-modal-overlay, #calculator-popup {
+                position: fixed;
+                transform: none; 
+            }
+        }
+
+        @keyframes rotate-device {
+            0% {
+              transform: rotate(0deg) scale(1);
+            }
+            15% {
+              transform: rotate(15deg) scale(1.05);
+            }
+            30% {
+              transform: rotate(75deg) scale(1.1);
+            }
+            50% {
+              transform: rotate(90deg) scale(1.15);
+            }
+            70% {
+              transform: rotate(90deg) scale(1.1);
+            }
+            85% {
+              transform: rotate(15deg) scale(1.05);
+            }
+            100% {
+              transform: rotate(0deg) scale(1);
+            }
+          }
+          
+          @keyframes glow-pulse {
+            0%, 100% {
+              filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.3));
+            }
+            50% {
+              filter: drop-shadow(0 0 16px rgba(59, 130, 246, 0.6));
+            }
+          }
+          
+          @keyframes float {
+            0%, 100% {
+              transform: translateY(0px);
+            }
+            50% {
+              transform: translateY(-10px);
+            }
+          }
+          
+          .animating-phone {
+            transform-origin: center;
+            animation: rotate-device 3s ease-in-out infinite;
+          }
+          
+          .phone-container {
+            animation: 
+              glow-pulse 2s ease-in-out infinite,
+              float 4s ease-in-out infinite;
+          }
 
         
     

@@ -1,4 +1,1869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=0.5, maximum-scale=3.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.5.0/math.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/MarchingCubes.js"></script>
 
+    
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.css" rel="stylesheet"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --color-primary: rgb(43, 72, 190);
+            --color-secondary: rgb(28, 164, 107);
+            --color-accent: rgb(218, 50, 106);
+            --op: rgb(236, 72, 153);
+            --var: rgb(52, 211, 153);
+            --digit: rgb(167, 139, 250);
+            --coeff: rgb(250, 204, 21);
+            --br: rgb(251, 146, 60);
+            --fn: rgb(59, 130, 246);
+            --sup: rgb(250, 204, 21);
+            --frac: rgb(34, 197, 94);
+            
+            --bg-main-start: #11151F;
+            --bg-main-mid: #1f2937;
+            --bg-main-end: #374151;
+            --bg-panel: rgba(31, 41, 55, 0.6);
+            --bg-sidebar: rgba(17, 24, 39, 0.75);
+            --bg-input: rgba(255, 255, 255, 0.05);
+            --bg-input-focus: rgba(255, 255, 255, 0.1);
+            --bg-hover: rgba(255, 255, 255, 0.1);
+            --bg-anim-controller: #262e3d;
+            
+            --bg-input-pos: rgba(59, 130, 246, 0.1);
+            --bg-input-rot: rgba(167, 139, 250, 0.12);
+            --bg-input-scale: rgba(52, 211, 153, 0.1);
+            --bg-input-physics: rgba(251, 146, 60, 0.1);
+            
+            --border-color: rgba(255, 255, 255, 0.1);
+            --border-subtle: rgba(255, 255, 255, 0.05);
+            
+            --text-light: #E6EDF3;
+            --text-muted: #8B949E;
+            --text-label: #cbd5e1;
+            
+            --shadow-glow: rgba(79, 142, 255, 0.25);
+            
+            --sidebar-width: 380px;
+            --animation-tray-height: 220px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            color: var(--text-light);
+            background: linear-gradient(135deg, var(--bg-main-start), var(--bg-main-end));
+            min-height: 100vh;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .hidden { display: none !important; }
+
+        .compact-input::placeholder {
+            color: var(--text-muted);
+            opacity: 0.8;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        .field-input,
+        .var-input {
+            background: var(--bg-input) !important;
+            border: 1px solid var(--border-color) !important;
+            color: var(--text-light) !important;
+            padding: 8px 10px !important;
+            border-radius: 6px !important;
+            transition: all 0.2s ease !important;
+            width: 100% !important;
+            font-size: 0.9rem !important;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--color-primary) !important;
+            box-shadow: 0 0 0 2px var(--shadow-glow) !important;
+            background: var(--bg-input-focus) !important;
+            color: #94a3b8;
+            padding: 4px 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            margin: 2px 0;
+        }
+        
+        .timeline-container {
+            height: 24px;
+            position: relative;
+            background: var(--bg-input);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0 8px 8px;
+        }
+        
+        .timeline-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: var(--section-color, var(--color-primary));
+            opacity: 0.7;
+            transition: width 0.1s linear;
+        }
+        
+        .timeline-handle {
+            position: absolute;
+            top: 50%;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            box-shadow: 0 0 0 2px var(--section-color, var(--color-primary));
+            z-index: 2;
+        }
+        
+        .timeline-ticks {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px;
+        }
+        
+        .tick {
+            width: 1px;
+            height: 6px;
+            background: var(--border-color);
+            margin-top: 2px;
+        }
+        
+        .tick.major {
+            height: 10px;
+            background: var(--text-muted);
+        }
+        
+        .compact-object-header {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: center;
+            padding: 4px 8px !important; 
+            background-color: rgba(255,255,255,0.02);
+        }
+
+        .compact-object-header .object-name {
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .compact-object-header .object-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .playground-objects-container {
+            space-y-4: 0;
+        }
+        .playground-object + .playground-object {
+            margin-top: 0.75rem; 
+        }
+        .compact-object-header {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: center;
+            padding: 4px 10px !important; 
+            background-color: rgba(255,255,255,0.02);
+        }
+        .compact-object-header .object-name {
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .compact-object-header .object-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .compact-object-header .tool-button {
+            width: 28px !important; 
+            height: 28px !important;
+        }
+
+        
+        
+        
+        .v-mode-content {
+            --section-color: #2563eb;  
+            --section-bg: rgba(37, 99, 235, 0.25);
+            --section-border: rgba(37, 99, 235, 0.5);
+            --section-text: #bfdbfe;
+            --section-highlight: rgba(37, 99, 235, 0.3);
+            background: var(--section-bg);
+            border: 2px solid var(--section-border);
+            border-radius: 8px;
+            margin: 8px 4px;
+            padding: 4px;
+        }
+        
+        
+        .p-mode-content {
+            --section-color: #7c3aed;  
+            --section-bg: rgba(124, 58, 237, 0.25);
+            --section-border: rgba(124, 58, 237, 0.5);
+            --section-text: #ddd6fe;
+            --section-highlight: rgba(124, 58, 237, 0.3);
+            background: var(--section-bg);
+            border: 2px solid var(--section-border);
+            border-radius: 8px;
+            margin: 8px 4px;
+            padding: 4px;
+        }
+        
+        
+        .physics-mode-content {
+            --section-color: #d97706;  
+            --section-bg: rgba(217, 119, 6, 0.25);
+            --section-border: rgba(217, 119, 6, 0.5);
+            --section-text: #fde68a;
+            --section-highlight: rgba(217, 119, 6, 0.3);
+            background: var(--section-bg);
+            border: 2px solid var(--section-border);
+            border-radius: 8px;
+            margin: 8px 4px;
+            padding: 4px;
+        }
+        
+        
+        .var-section {
+            --section-color: #10b981;  
+            --section-bg: rgba(16, 185, 129, 0.1);
+            --section-border: rgba(16, 185, 129, 0.3);
+            --section-text: #6ee7b7;
+            --section-highlight: rgba(16, 185, 129, 0.2);
+            
+            background: var(--section-bg);
+            border-left: 3px solid var(--section-color);
+            margin: 8px 6px;
+            border-radius: 0 6px 6px 0;
+            overflow: hidden;
+        }
+
+        
+        .section-title, .var-section .section-title {
+            background: var(--section-highlight);
+            color: white;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: -4px -4px 8px -4px;
+            border-bottom: 2px solid var(--section-border);
+            border-radius: 6px 6px 0 0;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+        }
+        
+        
+        .field-group {
+            background: var(--section-bg);
+            border: 1px solid var(--section-border);
+            border-radius: 6px;
+            margin: 8px 6px;
+            overflow: hidden;
+        }
+        
+        
+        .field-input, 
+        .v-mode-content input[type="text"], 
+        .v-mode-content input[type="number"],
+        .p-mode-content input[type="text"],
+        .p-mode-content input[type="number"],
+        .physics-mode-content input[type="text"],
+        .physics-mode-content input[type="number"] {
+            background: rgba(0, 0, 0, 0.3) !important;
+            border: 1px solid var(--section-border) !important;
+            color: white !important;
+            padding: 8px 10px !important;
+            border-radius: 6px !important;
+            transition: all 0.2s ease !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            font-size: 0.9rem !important;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+        }
+        
+        .field-input:focus {
+            outline: none !important;
+            border-color: var(--section-color) !important;
+            box-shadow: 0 0 0 2px var(--section-highlight) !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+        }
+        
+        
+        .field-label {
+            color: var(--section-text);
+            font-size: 0.7rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+            display: block;
+        }
+        
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: .4s;
+            border-radius: 20px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: var(--section-color);
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(16px);
+        }
+
+
+        .var-input-container {
+            padding: 8px 12px 10px;
+        }
+
+
+        .var-input {
+            background: rgba(16, 185, 129, 0.08) !important;
+            border: 1px solid rgba(16, 185, 129, 0.2) !important;
+            color: #a7f3d0 !important;
+        }
+
+        .var-input:focus {
+            border-color: #10b981 !important;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2) !important;
+            background: rgba(16, 185, 129, 0.15) !important;
+        }
+
+        
+        .var-label {
+            color: #6ee7b7;
+            font-size: 0.7rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        
+        .var-toggle {
+            accent-color: #10b981;
+        }
+
+        
+        .var-toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        
+        
+        
+        .p-mode-table-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            padding: 8px 12px;
+        }
+        
+        .p-mode-table-grid input[type="text"] {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-light);
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        .p-mode-table-grid input[type="text"]:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px var(--shadow-glow);
+            background: var(--bg-input-focus);
+        }
+        
+        .p-mode-table-grid .field-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+
+        
+        
+        .animation-tray-wrapper.hidden {
+            transform: translateY(100%);
+        }
+        
+        
+        #global-animation-tray {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        
+        .anim-tray-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--bg-anim-controller);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        
+        .anim-tray-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        
+        .anim-tray-mode-toggle {
+            display: inline-flex;
+            background: var(--bg-input);
+            border-radius: 6px;
+            padding: 2px;
+            gap: 2px;
+        }
+        
+        .anim-tray-mode-toggle input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .anim-tray-mode-toggle label {
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .anim-tray-mode-toggle input:checked + label {
+            background: var(--section-color, var(--color-primary));
+            color: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        
+        
+        #animation-cards-container {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px;
+            overflow-y: auto;
+            background: yellow;
+        }
+        
+        
+        .tray-controls {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 30;
+        }
+        
+        .tray-control-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-hover);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .tray-control-btn:hover {
+            background: var(--color-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+           -webkit-appearance: none; 
+           margin: 0; 
+        }
+
+        input[type=number] {
+           -moz-appearance: textfield; 
+        }
+        :root {
+            --color-primary:rgb(43, 72, 190); 
+            --color-secondary:rgb(28, 164, 107); 
+            --color-accent:rgb(218, 50, 106); 
+            --bg-main-start: #11151F; 
+
+            --bg-main-mid: #1f2937;
+            --bg-main-end: #374151;
+            --bg-panel: rgba(31, 41, 55, 0.6);
+            --bg-sidebar: rgba(17, 24, 39, 0.75);
+            --bg-input: rgba(255, 255, 255, 0.05);
+            --bg-input-focus: rgba(255, 255, 255, 0.1);
+            --bg-hover: rgba(255, 255, 255, 0.1);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --border-subtle: rgba(255, 255, 255, 0.05);
+            --shadow-glow: rgba(79, 142, 255, 0.25);
+
+            
+            --text-light: #E6EDF3;
+            --text-muted: #8B949E;
+            --text-label: #cbd5e1;
+            
+            --op:rgb(236, 72, 153);
+            --var:rgb(52, 211, 153);
+            --digit:rgb(167, 139, 250);
+            --coeff:rgb(250, 204, 21);
+            --br:rgb(251, 146, 60);
+            --fn:rgb(59, 130, 246);
+            --sup:rgb(250, 204, 21);
+            --frac:rgb(34, 197, 94);
+            --sidebar-width: 380px;
+            --animation-tray-height: 220px;
+            
+            --bg-input-pos: rgba(59, 130, 246, 0.1);     
+            --bg-input-rot: rgba(167, 139, 250, 0.12);   
+            --bg-input-scale: rgba(52, 211, 153, 0.1);   
+            --bg-input-physics: rgba(251, 146, 60, 0.1); 
+            --bg-anim-controller: #262e3d;               
+        }
+
+        body.light-theme {
+            
+            --color-primary: #5a7d9a;   
+            --color-secondary: #6a8a65; 
+            --color-accent: #c4765a;    
+        
+            
+            --bg-main-start: #f8f5f1;
+            --bg-main-mid: #f3efeb;
+            --bg-main-end: #ede7e1;
+            --bg-panel: rgba(230, 225, 218, 0.85);
+            --bg-sidebar: rgba(240, 236, 232, 0.9);
+            
+            
+            --bg-input: rgba(78, 68, 58, 0.05);
+            --bg-input-focus: rgba(78, 68, 58, 0.1);
+            --bg-hover: rgba(78, 68, 58, 0.08);
+            --border-color: rgba(78, 68, 58, 0.15);
+            --border-subtle: rgba(78, 68, 58, 0.1);
+        
+            
+            --text-light: #4E443A;      
+            --text-muted: #8A7F72;       
+            --text-label: #6B6054;       
+            
+            
+            --shadow-glow: rgba(90, 125, 154, 0.2);
+            --canvas-bg: #EAE4DC;
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-main-start); color: var(--text-light); overflow: hidden; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .backdrop-blur-lg { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+        
+        .view-controls {
+            background : var(--bg-panel);
+        }
+
+        .animation-tray-wrapper {
+            grid-area: right-panel;
+            width: 252px;
+            display: flex;
+            flex-direction: column;
+            height: auto; 
+            max-height: 100%; 
+            background: var(--bg-panel);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-left: 1px solid var(--border-color);
+            overflow-y: auto; 
+            position: relative; 
+        }
+        #add-object-menu {
+            background-color:rgb(65, 142, 163); 
+            font-family: 'Segoe UI', sans-serif; 
+            font-size: 14px;                     
+            font-weight: 500;                    
+            color: dark blue;  
+        }
+
+        
+        
+        
+
+
+
+        .top-bar { grid-area: header; background: var(--bg-panel); border-bottom: 1px solid var(--border-color); z-index: 15; }
+        .left-panel { grid-area: left-panel; background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; position: relative; overflow: hidden; transition: padding 0.3s ease; }
+        .sidebar-content { flex-grow: 1; overflow-y: auto; }
+        .main-viewport {
+            grid-area: main-view;
+            position: relative;
+            background-image: radial-gradient(var(--border-subtle) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        #plot-container { cursor: grab; }
+        #plot-container:active { cursor: grabbing; }
+        .right-toolbar { grid-area: right-toolbar; background: var(--bg-panel); border-left: 1px solid var(--border-color); }
+
+        #resize-handle { position: absolute; top: 0; right: -3px; bottom: 0; width: 6px; cursor: col-resize; z-index: 100; transition: background-color 0.2s; }
+        #resize-handle:hover, body.is-resizing #resize-handle { background-color: rgba(59, 130, 246, 0.5); }
+        body.is-resizing { cursor: col-resize !important; user-select: none; }
+        
+
+
+
+
+        .app-grid {
+            display: grid;
+            grid-template-areas: "header header header" "left-panel main-view right-panel";
+            grid-template-rows: 60px minmax(0, 1fr);
+            grid-template-columns: var(--sidebar-width) 1fr 252px; 
+            height: 100vh;
+            width: 100vw;
+        }
+        #global-animation-tray {
+            width: 252px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        
+            
+            padding: 10px;
+        
+            
+            overflow-y: auto;
+            min-height: 0; 
+        }
+        
+        
+        #animation-cards-container {
+            display: flex;
+            flex-direction: column;
+            flex-wrap: nowrap;
+            gap: 10px;
+            background: var(--bg-panel);
+        }
+        
+        
+        #tray-resize-handle {
+            display: none;
+        }
+       
+        #tray-resize-handle:hover, body.is-tray-resizing #tray-resize-handle { background-color: rgba(59, 130, 246, 0.5); }
+        body.is-tray-resizing { cursor: row-resize !important; user-select: none; }
+
+        .status-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 24px; pointer-events: none; }
+        .status-item { font-size: 12px; color: var(--text-muted); }
+
+        .sidebar-content::-webkit-scrollbar, .waypoints-container::-webkit-scrollbar { width: 6px; }
+        .sidebar-content::-webkit-scrollbar-track, .waypoints-container::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-content::-webkit-scrollbar-thumb, .waypoints-container::-webkit-scrollbar-thumb { background: var(--color-primary); border-radius: 3px; }
+        .sidebar-content::-webkit-scrollbar-thumb:hover, .waypoints-container::-webkit-scrollbar-thumb:hover { background: var(--color-secondary); }
+
+        .logo { font-size: 24px; font-weight: 800; background: linear-gradient(45deg, var(--color-primary), var(--color-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .mode-tabs { display: flex; justify-content: flex-end; background: var(--bg-input); border-radius: 12px; padding: 5px; border: 1px solid var(--border-subtle); }
+        .mode-tab { flex: 1; padding: 8px 12px; text-align: center; border-radius: 9px; cursor: pointer; transition: all 0.3s ease; font-size: 13px; font-weight: 600; color: var(--text-muted); }
+        .mode-tab.active { background: linear-gradient(45deg, var(--color-primary), var(--color-secondary)); box-shadow: 0 0 20px var(--shadow-glow); color: white; }
+        .mode-tab:not(.active):hover { background: var(--bg-hover); color: var(--text-light); }
+        .accordion-header { font-size: 1rem; font-weight: 600; color: var(--text-light); cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 12px 8px; border-radius: 8px; transition: background-color 0.2s ease; }
+        .accordion-header:hover { background-color: var(--bg-hover); }
+        .accordion-header.open { background-color: var(--bg-input); }
+        .accordion-header .chevron-container { width: 24px; height: 24px; background-color: var(--bg-input); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: transform 0.3s ease-in-out; }
+        .accordion-header.open .chevron-container { transform: rotate(180deg); }
+        .accordion-content { max-height: 0; 
+            overflow: hidden; 
+            transition: max-height 0.4s ease-in-out, padding-bottom 0.4s ease-in-out; 
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            padding-bottom: 0;
+        }
+
+        .btn:active, .tool-button:active {
+            transform: translateY(1px) scale(0.98);
+            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .accordion-content.open { padding-bottom: 5px; }
+        label { color: var(--text-label); font-size: 0.875rem; font-weight: 500; display: block; margin-bottom: 6px; }
+        .form-input, .form-select { background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-light); transition: all 0.3s ease; padding: 10px 12px; font-size: 0.875rem; }
+        .form-input:focus, .form-select:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(79, 142, 255, 0.3); background: var(--bg-input-focus); }
+        
+        .form-input.anim-controlled {
+            background: repeating-linear-gradient(45deg, var(--bg-input), var(--bg-input) 10px, var(--bg-input-focus) 10px, var(--bg-input-focus) 20px);
+            animation: anim-controlled-march 2s linear infinite;
+            pointer-events: none;
+            color: var(--text-muted);
+        }
+        @keyframes anim-controlled-march { from { background-position: 0 0; } to { background-position: 40px 0; } }
+
+        .math-input-container { background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; transition: all 0.3s ease; padding: 8px 12px; font-size: 16px; }
+        .math-input-container.mq-focused { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--shadow-glow); background: var(--bg-input-focus); }
+        .btn { padding: 10px 14px; border: none; border-radius: 0.5rem; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: center; gap: 8px; user-select: none; }
+        .btn-primary { background: linear-gradient(45deg, var(--color-primary), var(--color-secondary)); color: white; }
+        .btn-secondary { background: var(--bg-hover); color: var(--text-light); border: 1px solid var(--border-subtle); }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px var(--shadow-glow); }
+        .btn:active { transform: translateY(0px); box-shadow: 0 4px 15px var(--shadow-glow); }
+        .btn.active-perf { background: var(--color-primary); }
+        .colormap-btn { height: 30px; border-radius: 6px; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+        .colormap-btn:hover { transform: scale(1.05); }
+        .colormap-btn.active { border-color: var(--color-secondary); box-shadow: 0 0 0 2px var(--color-secondary); }
+        
+        .hidden { display: none !important; }
+
+        .toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background-color: var(--color-secondary); color: white; padding: 12px 24px; border-radius: 8px; z-index: 1050; opacity: 0; transition: opacity 0.3s, top 0.3s; pointer-events: none; }
+        .toast.show { opacity: 1; top: 90px; }
+
+        .right-toolbar { display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 16px; }
+        .tool-group { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        .tool-group .separator { width: 60%; height: 1px; background-color: var(--border-color); margin: 4px 0; }
+        .tool-button { width: 48px; height: 48px; border-radius: 14px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; border: 1px solid transparent; background: transparent; }
+        .tool-button:hover { color: var(--text-light); background-color: var(--bg-hover); }
+        .tool-button.active { color: white; background: var(--color-primary); box-shadow: 0 4px 15px var(--shadow-glow); }
+
+        .math-input-group { margin-bottom: 8px; position: relative; }
+        .math-input-actions { position: absolute; top: 4px; right: 4px; display: flex; gap: 4px; }
+        .math-input-action-btn { background: var(--bg-input-focus); border: none; color: var(--text-muted); border-radius: 6px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+        .math-input-action-btn:hover { background: var(--bg-hover); color: var(--text-light); }
+
+        .calculator-pad { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 12px; border-top: 1px solid var(--border-subtle); padding-top: 12px; }
+        .calc-key { padding: 6px 4px; font-size: 14px; font-weight: 600; border-radius: 8px; background-color: var(--bg-input); color: var(--text-label); border: 1px solid transparent; transition: all 0.2s ease; text-align: center; }
+        .calc-key:hover { background-color: var(--bg-hover); border-color: var(--color-primary); color: var(--text-light); transform: translateY(-1px); }
+        .calc-key:active { transform: translateY(0); background-color: var(--bg-input-focus); }
+        .calc-key.op-key { color: var(--op); font-size: 16px; }
+        .calc-key.clear-key { background-color: var(--color-accent); color: white; }
+        
+        .anim-tray-controller { background: rgba(30, 33, 50, 0.5); border: 1px solid var(--border-subtle); border-left: 3px solid var(--component-accent, var(--color-primary)); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 8px; flex: 0 0 280px; }
+        .anim-tray-header { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px; }
+        .anim-tray-header h3 { margin: 0; font-size: 0.8rem; font-weight: 600; color: var(--text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .anim-tray-header h3 .accent-dot { color: var(--component-accent, var(--color-primary)); font-size: 1.1em; }
+        .anim-tray-mode-toggle { display: flex; background-color: var(--bg-input); border-radius: 6px; padding: 2px; }
+        .anim-tray-mode-toggle label { padding: 1px 6px; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); cursor: pointer; border-radius: 4px; transition: all 0.2s ease;}
+        .anim-tray-mode-toggle input:checked + label { background-color: var(--component-accent, var(--color-secondary)); color: white; box-shadow: 0 0 8px -2px var(--component-accent, var(--color-secondary)); }
+        .anim-tray-mode-toggle input { display: none; }
+        .anim-tray-player { display: flex; align-items: center; gap: 5px; background-color: var(--bg-input); padding: 3px; border-radius: 6px; }
+        .anim-tray-player .icon-btn { color: var(--text-muted); font-size: 0.75rem; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .anim-tray-player .icon-btn:hover { background-color: var(--bg-hover); color: var(--text-light); }
+        .anim-tray-player .icon-btn.active { color: var(--component-accent, var(--color-primary)); }
+        .anim-tray-player input[type="range"] { flex-grow: 1; height: 4px; background: var(--bg-input); -webkit-appearance: none; appearance: none; border-radius: 2px; outline: none; transition: opacity .2s; }
+        .anim-tray-player input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; background: var(--component-accent, var(--color-primary)); border-radius: 50%; cursor: pointer; }
+        .anim-tray-player .slider-value { background-color: var(--bg-input-focus); padding: 1px 5px; font-size: 0.65rem; min-width: 38px; text-align: center; border-radius: 4px; font-family: 'JetBrains Mono', monospace; }
+        .anim-tray-fieldset { border: 1px solid var(--border-subtle); border-radius: 6px; padding: 6px; margin: 0; }
+        .anim-tray-fieldset legend { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); padding: 0 5px; }
+        .anim-tray-fieldset .legend-checkbox { display: flex; align-items: center; gap: 4px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); }
+        .compact-input-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+        .compact-input-label { display: flex; flex-direction: column; font-size: 0.6rem; color: var(--text-muted); gap: 1px; }
+        .compact-input, .compact-select { width: 100%; background-color: var(--bg-input-focus); border: 1px solid var(--border-subtle); color: var(--text-light); border-radius: 4px; padding: 3px 5px; font-size: 0.7rem; font-family: 'JetBrains Mono', monospace; outline: none; -moz-appearance: textfield; }
+        .compact-input::-webkit-outer-spin-button, .compact-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .compact-input:focus, .compact-input:hover, .compact-select:focus, .compact-select:hover { border-color: var(--component-accent, var(--color-primary)); }
+        .compact-select { -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem; }
+        .anim-tray-p-mode-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
+        .anim-tray-p-mode-field { display: flex; align-items: center; gap: 4px; }
+        .anim-tray-p-mode-field .compact-input { flex-grow: 1; }
+        .p-mode-live-value { font-size: 0.7rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); background: var(--bg-input); padding: 3px 5px; border-radius: 4px; text-align: right; min-width: 40px; }
+        .compact-input.input-error { border-color: var(--color-error) !important; box-shadow: 0 0 0 2px var(--color-error) !important; }
+        .waypoints-container { max-height: 80px; overflow-y: auto; padding-right: 5px; }
+        .waypoint-item { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 4px; align-items: center; margin-bottom: 4px; }
+        .waypoint-item .compact-input { padding: 2px 4px; font-size: 0.65rem; }
+        .waypoint-remove-btn { width: 20px; height: 20px; font-size: 0.6rem; }
+
+        .mq-editable-field .mq-root-block { overflow-x: auto; white-space: nowrap; scrollbar-width: thin; scrollbar-color: var(--color-primary) transparent; }
+        .mq-editable-field .mq-root-block::-webkit-scrollbar { height: 4px; }
+        .mq-editable-field .mq-root-block::-webkit-scrollbar-track { background: transparent; }
+        .mq-editable-field .mq-root-block::-webkit-scrollbar-thumb { background-color: var(--color-primary); border-radius: 2px; }
+        .mq-editable-field .mq-cursor { border-left: 2px solid hsl(0, 100.00%, 50.00%) !important; }
+
+        
+        .math-input-group {
+            position: relative;
+        }
+
+        .math-input-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .math-input-container .mq-editable-field {
+            flex-grow: 1;
+        }
+
+        .calc-trigger-btn {
+            background: var(--bg-input-focus);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            border-radius: 6px;
+            width: 34px;
+            height: 34px;
+            margin-left: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .calc-trigger-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-light);
+            border-color: var(--color-primary);
+        }
+
+        #calculator-keypad button {
+            background-color: var(--bg-input);
+            color: var(--text-label);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 8px 4px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        #calculator-keypad button:hover {
+            background-color: var(--bg-hover);
+            border-color: var(--color-primary);
+            transform: translateY(-1px);
+        }
+
+        #calculator-keypad button.op-key {
+            color: var(--op);
+            font-size: 16px;
+        }
+
+        #calculator-keypad button.fn-key {
+            color: var(--fn);
+        }
+        
+        #calculator-display-mq {
+            display: block;
+            width: 100%;
+            font-size: 18px;
+            padding: 4px 8px;
+            min-height: 36px;
+            color: white;
+        }
+        
+        .playground-objects-container {
+            space-y-4: 0; 
+        }
+        .playground-object + .playground-object {
+            margin-top: 0.75rem; 
+        }
+        .playground-object-header {
+            padding: 6px 10px !important; 
+        }
+        .playground-object-header .tool-button {
+            width: 28px !important; 
+            height: 28px !important;
+        }
+
+        
+        #calculator-display-mq .mq-root-block {
+            white-space: normal;
+        }
+        span.mq-binary-operator, span.mq-unary-operator, span.mq-operator-name, .mq-rel { color: var(--op) !important; font-weight: bold !important; }
+        span.mq-variable, .mq-letter { color: var(--var) !important; font-style: italic !important; font-weight: bold !important; }
+        span.mq-digit, span.mq-number { color: var(--digit) !important; font-weight: bold !important; }
+        .highlight-coeff { color: var(--coeff) !important; font-weight: bold !important; }
+        span.mq-paren, span.mq-bracket { color: var(--br) !important; font-weight: bold !important; }
+        span.mq-function-name, .mq-sqrt-prefix, .mq-sqrt-stem { color: var(--fn) !important; font-weight: bold !important; }
+        .mq-sup, .mq-sub { color: var(--sup) !important; font-style: italic !important; font-weight: bold !important; }
+        span.mq-fraction .mq-numerator, span.mq-fraction .mq-denominator { color: var(--frac) !important; }
+
+        .playground-object { border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-input); transition: border-color 0.3s, box-shadow 0.3s; }
+        .playground-object.focused { border-color: var(--color-secondary); box-shadow: 0 0 15px rgba(34, 197, 94, 0.3); }
+        .playground-object-header { background: rgba(255,255,255,0.03); padding: 8px 12px; border-bottom: 1px solid var(--border-color); }
+        .dropdown-menu { position: absolute; z-index: 10; background-color: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: none; }
+        .dropdown-menu.show { display: block; }
+        .dropdown-item { padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; }
+        .dropdown-item:hover { background-color: var(--bg-hover); }
+
+        .preset-card:hover { transform: translateY(-2px); background-color: var(--bg-hover); }
+
+        .fullscreen-mode .main-viewport {
+            display: block;
+        }
+        
+        .fullscreen-mode .app-grid {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr;
+        }
+
+        .exit-mode-btn { position: absolute; top: 20px; right: 20px; z-index: 100; display: none; background: var(--bg-panel); color: var(--text-light); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border-color); cursor: pointer; font-size: 14px; font-weight: 600; align-items: center; gap: 8px; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+        .exit-mode-btn:hover { background: var(--bg-hover); border-color: var(--color-primary); }
+        .zen-mode #exit-zen-mode, .fullscreen-zen-mode #exit-fullscreen-mode { display: flex; }
+        
+        #global-animation-tray {
+            
+            background: var(--bg-panel); 
+            backdrop-filter: blur(20px); 
+            border-top: 1px solid rgba(255, 255, 255, 0.15); 
+        }
+
+        
+        
+
+        
+        .anim-tray-controller {
+            flex: 1 0 10% !important; 
+            gap: 3px !important;
+            padding: 4px !important;
+        }
+
+        
+        .anim-tray-header {
+            display: grid;
+            grid-template-columns: 1fr auto; 
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 2px;
+        }
+        .anim-tray-header h3 {
+            font-size: 0.7rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; 
+            margin: 0;
+        }
+        .anim-tray-mode-toggle {
+            background-color: rgba(0,0,0,0.15); 
+            border-radius: 5px;
+            padding: 1px;
+            display: flex;
+        }
+        .anim-tray-mode-toggle label {
+            padding: 0px 5px;
+            font-size: 0.6rem;
+            border-radius: 4px;
+        }
+        .anim-tray-mode-toggle input:checked + label {
+            box-shadow: none; 
+        }
+
+
+        
+        .anim-tray-player {
+            gap: 2px;
+            padding: 2px;
+        }
+        .anim-tray-player input[type="range"] {
+            flex-grow: 0 !important;
+            width: 70px; 
+        }
+        .anim-tray-player .icon-btn {
+            width: 18px;
+            height: 18px;
+        }
+        .anim-tray-player .slider-value {
+            min-width: 28px;
+            padding: 0px 3px;
+            font-size: 0.6rem;
+        }
+
+        
+        .v-mode-content, .p-mode-content, .physics-mode-content {
+            gap: 3px !important;
+        }
+        .anim-tray-fieldset {
+            padding: 3px 5px;
+        }
+        .anim-tray-fieldset legend {
+            font-size: 0.6rem;
+            padding: 0 2px;
+        }
+
+        
+        .compact-input, .compact-select {
+            padding: 1px 3px;
+            font-size: 0.65rem;
+            height: 19px;
+            color : green:
+        }
+        .compact-input-grid {
+            gap: 2px;
+        }
+        .p-mode-row-label, .legend-checkbox {
+            font-size: 0.65rem;
+            margin-bottom: 2px;
+        }
+
+        
+        .waypoints-container {
+            max-height: 42px;
+        }
+        .waypoint-item {
+            gap: 2px;
+            margin-bottom: 2px;
+        }
+        .waypoint-remove-btn, .add-waypoint-btn {
+            height: 18px;
+        }
+        .add-waypoint-btn {
+            margin-top: 2px !important;
+        }
+        .slicing-axis-toggle label {
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+        }
+        .slicing-axis-toggle input:checked + label {
+            background-color: var(--color-primary);
+            color: white;
+            box-shadow: 0 0 8px -2px var(--color-primary);
+        }
+        
+
+        
+        .anim-tray-controller {
+            
+            flex-shrink: 0; 
+            gap: 3px !important;
+            padding: 4px !important;
+            background: rgba(30, 33, 50, 0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 8px; 
+            border: 1px solid var(--border-subtle); 
+        }
+
+        
+        .anim-tray-header {
+            display: grid;
+            grid-template-columns: 1fr auto; 
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 2px;
+        }
+        .anim-tray-header h3 {
+            font-size: 0.7rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; 
+            margin: 0;
+        }
+        .anim-tray-mode-toggle {
+            background-color: rgba(0,0,0,0.15); 
+            border-radius: 5px;
+            padding: 1px;
+            display: flex;
+        }
+        .anim-tray-mode-toggle label {
+            padding: 0px 5px;
+            font-size: 0.6rem;
+            border-radius: 4px;
+        }
+        .anim-tray-mode-toggle input:checked + label {
+            box-shadow: none; 
+        }
+
+
+        
+        .anim-tray-player {
+            gap: 2px;
+            padding: 2px;
+        }
+        .anim-tray-player input[type="range"] {
+            flex-grow: 0 !important; 
+            width: 70px; 
+        }
+        .anim-tray-player .icon-btn {
+            width: 18px;
+            height: 18px;
+        }
+        .anim-tray-player .slider-value {
+            min-width: 28px;
+            padding: 0px 3px;
+            font-size: 0.6rem;
+        }
+
+        
+        .v-mode-content, .p-mode-content, .physics-mode-content {
+            gap: 3px !important;
+        }
+        .anim-tray-fieldset {
+            padding: 3px 5px;
+        }
+        .anim-tray-fieldset legend {
+            font-size: 0.6rem;
+            padding: 0 2px;
+        }
+
+        
+        .compact-input, .compact-select {
+            padding: 1px 3px;
+            font-size: 0.65rem;
+            height: 19px;
+
+        }
+        .compact-input-grid {
+            gap: 2px;
+        }
+        .p-mode-row-label, .legend-checkbox {
+            font-size: 0.65rem;
+            margin-bottom: 2px;
+        }
+
+        
+        .waypoints-container {
+            max-height: 42px; 
+        }
+        .waypoint-item {
+            gap: 2px;
+            margin-bottom: 2px;
+        }
+        .waypoint-remove-btn, .add-waypoint-btn {
+            height: 18px;
+        }
+        .add-waypoint-btn {
+            margin-top: 2px !important;
+        }
+        .logo {
+            font-size: 28px; 
+        }
+        
+        .accordion-header {
+            font-size: 1.1rem; 
+            font-weight: 700; 
+        }
+        
+        label {
+            font-size: 0.8rem; 
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+        .btn-primary {
+            background: var(--color-primary);
+            box-shadow: 0 2px 10px rgba(88, 121, 248, 0.3); 
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(88, 121, 248, 0.4);
+        }
+        
+        .form-input {
+            background: rgba(255, 255, 255, 0.07); 
+            border-radius: 6px;
+        }
+        
+        .tool-button {
+            width: 52px; 
+            height: 52px;
+            border-radius: 12px;
+        }
+        .sidebar-content {
+            padding: 2rem; 
+        }
+        
+        .space-y-4 > * + * {
+            margin-top: 1.25rem; 
+        }
+        .playground-object.is-plotting {
+            position: relative;
+            pointer-events: none; 
+        }
+        
+        .playground-object.is-plotting::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--bg-main-start);
+            opacity: 0.7;
+            border-radius: 12px;
+            z-index: 1;
+        }
+        
+        .playground-object.is-plotting::after {
+            content: '';
+            position: absolute;
+            top: calc(50% - 12px);
+            left: calc(50% - 12px);
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            z-index: 2;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        #info-modal-overlay {
+            transition: opacity 0.2s ease-in-out;
+        }
+        #info-modal-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #info-modal-panel {
+            transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+        }
+        #info-modal-overlay.hidden #info-modal-panel {
+            transform: scale(0.95);
+        }
+        
+        .info-slide {
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+            pointer-events: none;
+        }
+        .info-slide.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        @media (max-width: 768px) and (orientation: portrait) {
+            /* Hide the main application grid */
+            .app-grid {
+                display: none !important; 
+            }
+        
+            /* Style and display the rotation prompt */
+            #rotate-prompt {
+                display: flex !important; /* Use !important to override other display properties */
+                position: fixed;
+                inset: 0;
+                background-color: var(--bg-main-start);
+                z-index: 9999;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                padding: 1rem;
+            }
+        }
+
+
+        @media (max-width: 1200px) and (orientation: landscape) {
+            body {
+                overflow: auto;
+            }
+        
+            .app-grid {
+                width: 1920px;
+                height: 1080px;
+        
+                --scale-x: calc(100vw / 1920px);
+                --scale-y: calc(100vh / 1080px);
+                --scale: min(var(--scale-x), var(--scale-y));
+                
+                /* Set your desired zoom level here */
+                --zoom-factor: 1.5; 
+        
+                transform-origin: top left;
+                transform: scale(calc(var(--scale) * var(--zoom-factor)));
+            }
+            
+            #info-modal-overlay, #tutorial-modal-overlay, #calculator-popup {
+                position: fixed;
+                transform: none; 
+            }
+        }
+
+        @keyframes rotate-device {
+            0% {
+              transform: rotate(0deg) scale(1);
+            }
+            15% {
+              transform: rotate(15deg) scale(1.05);
+            }
+            30% {
+              transform: rotate(75deg) scale(1.1);
+            }
+            50% {
+              transform: rotate(90deg) scale(1.15);
+            }
+            70% {
+              transform: rotate(90deg) scale(1.1);
+            }
+            85% {
+              transform: rotate(15deg) scale(1.05);
+            }
+            100% {
+              transform: rotate(0deg) scale(1);
+            }
+          }
+          
+          @keyframes glow-pulse {
+            0%, 100% {
+              filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.3));
+            }
+            50% {
+              filter: drop-shadow(0 0 16px rgba(59, 130, 246, 0.6));
+            }
+          }
+          
+          @keyframes float {
+            0%, 100% {
+              transform: translateY(0px);
+            }
+            50% {
+              transform: translateY(-10px);
+            }
+          }
+          
+          .animating-phone {
+            transform-origin: center;
+            animation: rotate-device 3s ease-in-out infinite;
+          }
+          
+          .phone-container {
+            animation: 
+              glow-pulse 2s ease-in-out infinite,
+              float 4s ease-in-out infinite;
+          }
+
+        
+    </style>
+</head>
+<body class="">
+    <div class="app-grid">
+
+        <header class="top-bar flex items-center justify-between px-6 backdrop-blur-lg">
+            <h1 class="logo">6AxisAnimation</h1>
+            <div class="flex items-center gap-4" style="margin-left: 250px;">
+                <div class="mode-tabs flex justify-end">
+                    <button class="mode-tab" data-mode="playground">Playground</button>
+                    <button class="mode-tab" data-mode="surface">Surface</button>
+                    <button class="mode-tab" data-mode="parametric">Parametric</button>
+                    <button class="mode-tab" data-mode="curve">Curve</button>
+                    <button class="mode-tab" data-mode="implicit">Implicit</button>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center bg-white/1 p-1 rounded-lg border border-white/10">
+                    <label for="wireframe-toggle" class="tool-button icon-toggle-btn cursor-pointer !w-9 !h-9" title="Toggle Wireframe">
+                        <input type="checkbox" id="wireframe-toggle" class="hidden">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-1.8 0-3.6.6-5 1.7l-7 5c-.6.5-.9 1.3-.9 2s.3 1.5.9 2l7 5c1.4 1.1 3.2 1.7 5 1.7s3.6-.6 5-1.7l7-5c.6-.5.9-1.3-.9-2s-.3-1.5-.9-2l-7-5C15.6 3.6 13.8 3 12 3z"/><path d="m22 7-8.9 5.1"/><path d="M2 7l8.9 5.1"/><path d="M12 22V12"/></svg>
+                    </label>
+                    <label for="grid-toggle" class="tool-button icon-toggle-btn cursor-pointer !w-9 !h-9 active" title="Toggle Axes & Grid">
+                        <input type="checkbox" id="grid-toggle" class="hidden" checked>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+                    </label>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="flex items-center bg-white/1 p-1 rounded-lg border border-white/10">
+                        <button id="info-btn" class="tool-button !w-9 !h-9" title="Show Help">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        </button>
+                        <button id="theme-toggle" class="tool-button !w-9 !h-9" title="Toggle Theme">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                        </button>
+                        <button id="zen-mode-toggle" class="tool-button !w-9 !h-9" title="Zen Mode">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4.5l-10 10M9.5 4.5l10 10M4.5 9.5l10 10M4.5 14.5l-10-10"/></svg>
+                        </button>
+                        <button id="force-fullscreen-btn" class="tool-button !w-9 !h-9" title="Toggle Fullscreen">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                        </button>
+                        <button class="btn btn-primary !p-2 !w-9 !h-9" id="share-btn" title="Copy a sharable link">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+    
+        <aside class="left-panel backdrop-blur-lg">
+            <div id="resize-handle"></div>
+            <div class="sidebar-content p-6 space-y-6">
+    
+                <div id="single-mode-controls" class="space-y-4">
+                    <div class="accordion">
+                        <button class="accordion-header w-full text-left">
+                            <span class="flex items-center gap-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-secondary"><path d="M12 2a10 10 0 1 0 10 10c0-4.42-2.87-8.17-6.84-9.5c-.5-.1-.96-.6-.96-1.12V1.25C4.24 2.11 2 5.73 2 10a10 10 0 0 0 10 10Z"></path><path d="M12 12a2 2 0 1 0 4 0a2 2 0 1 0-4 0Z"></path></svg>
+                                <span>Configuration</span>
+                            </span>
+                            <span class="chevron-container"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="chevron"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+                        </button>
+                        <div class="accordion-content">
+                            <div class="space-y-5 pt-3">
+                                <div class="surface-controls relative"></div>
+                                <div class="parametric-controls hidden space-y-3 relative"></div>
+                                <div class="curve-controls hidden space-y-3 relative"></div>
+                                <div class="implicit-controls hidden space-y-3 relative"></div>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="accordion">
+                        <button class="accordion-header w-full text-left">
+                            <span class="flex items-center gap-3">
+                               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-secondary"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                               <span>Appearance</span>
+                            </span>
+                            <span class="chevron-container"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="chevron"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+                        </button>
+                        <div class="accordion-content">
+                            <div class="space-y-5 pt-3" id="appearance-settings">
+                            </div>
+                        </div>
+                        <div class="accordion-content">
+                            <div class="space-y-5 pt-3">
+                                <div class="surface-controls relative"></div>
+                                <div class="vector-controls hidden space-y-3 relative"></div>
+                                <div class="parametric-controls hidden space-y-3 relative"></div>
+                                <div class="curve-controls hidden space-y-3 relative"></div>
+                                <div class="implicit-controls hidden space-y-3 relative"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+    
+                <div id="playground-controls" class="space-y-4 hidden">
+                    <div class="relative">
+                        <button id="add-object-btn" class="btn btn-primary w-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            Add Object
+                        </button>
+                        <div id="add-object-menu" class="dropdown-menu w-full">
+                            <div class="dropdown-item" data-type="surface">Explicit Surface</div>
+                            <div class="dropdown-item" data-type="parametric">Parametric Surface</div>
+                            <div class="dropdown-item" data-type="curve">Parametric Curve</div>
+                            <div class="dropdown-item" data-type="vector">Vector Field</div>
+                            <div class="dropdown-item" data-type="single-vector">Single Vector</div>
+                            <div class="dropdown-item" data-type="implicit">Implicit Surface</div>
+                        </div>
+                    </div>
+                    <div id="playground-objects-container" class="space-y-4"></div>
+                </div>
+                <div class="accordion" id="slicing-controls-accordion">
+                    <button class="accordion-header w-full text-left">
+                        <span class="flex items-center gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-secondary"><path d="M14.5 4.5l-10 10M9.5 4.5l10 10M4.5 9.5l10 10M4.5 14.5l-10-10"/></svg>
+                            <span>Slicing Plane</span>
+                        </span>
+                        <span class="chevron-container"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="chevron"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+                    </button>
+                    <div class="accordion-content">
+                        <div class="space-y-3 pt-3 p-2">
+                            <label class="flex items-center gap-3 cursor-pointer">
+                                <input type="checkbox" id="slicing-enabled-toggle" class="form-checkbox h-5 w-5 text-primary rounded">
+                                <span class="font-medium">Enable Slicing</span>
+                            </label>
+                            <div class="slicing-axis-toggle flex bg-bg-input-focus rounded-lg p-1">
+                                <input type="checkbox" id="slice-axis-x" value="x" class="hidden"><label for="slice-axis-x" class="flex-1 text-center py-1 text-sm font-semibold rounded-md cursor-pointer transition-colors">X</label>
+                                <input type="checkbox" id="slice-axis-y" value="y" class="hidden"><label for="slice-axis-y" class="flex-1 text-center py-1 text-sm font-semibold rounded-md cursor-pointer transition-colors">Y</label>
+                                <input type="checkbox" id="slice-axis-z" value="z" class="hidden"><label for="slice-axis-z" class="flex-1 text-center py-1 text-sm font-semibold rounded-md cursor-pointer transition-colors">Z</label>
+                            </div>
+                            <div>
+                                <label class="text-sm">X Position: <span id="slice-position-value-x" class="font-mono text-secondary font-semibold">0.00</span></label>
+                                <input type="range" id="slice-position-slider-x" min="-10" max="10" step="0.1" value="0" data-axis="x">
+                            </div>
+                            <div>
+                                <label class="text-sm">Y Position: <span id="slice-position-value-y" class="font-mono text-secondary font-semibold">0.00</span></label>
+                                <input type="range" id="slice-position-slider-y" min="-10" max="10" step="0.1" value="0" data-axis="y">
+                            </div>
+                            <div>
+                                <label class="text-sm">Z Position: <span id="slice-position-value-z" class="font-mono text-secondary font-semibold">0.00</span></label>
+                                <input type="range" id="slice-position-slider-z" min="-10" max="10" step="0.1" value="0" data-axis="z">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion" id="presets-accordion">
+                    <button class="accordion-header w-full text-left">
+                        <span class="flex items-center gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-secondary"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                            <span id="presets-title">Presets</span>
+                        </span>
+                        <span class="chevron-container"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="chevron"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+                    </button>
+                    <div class="accordion-content"><div class="pt-3 grid grid-cols-2 sm:grid-cols-3 gap-3" id="presets-container"></div></div>
+                </div>
+            </div>
+    
+            <div class="p-4 mt-auto border-t border-white/10">
+                <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 mb-4">
+                    <h3 class="text-sm font-bold text-blue-300 text-center uppercase tracking-wide">File Operations</h3>
+                </div>
+                <div class="grid grid-cols-5 gap-2">
+                    <button class="btn btn-primary flex items-center justify-center h-12 min-w-[60px]" id="export-png" title="Export plot as PNG">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
+                            <circle cx="9" cy="9" r="2"></circle>
+                            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
+                        </svg>
+                    </button>
+                    <button class="btn btn-secondary flex items-center justify-center h-12 min-w-[60px]" id="export-stl" title="Export focused object as STL">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        </svg>
+                    </button>
+                    <button class="btn btn-secondary flex items-center justify-center h-12 min-w-[60px]" id="export-gltf" title="Export focused object as GLTF">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                        </svg>
+                    </button>
+                    <button class="btn btn-secondary flex items-center justify-center h-12 min-w-[60px]" id="save-settings" title="Save current settings">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                    </button>
+                    <label class="btn btn-secondary flex items-center justify-center cursor-pointer h-12 min-w-[60px]" title="Load settings from file">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        <input type="file" id="load-settings" accept=".json" class="hidden">
+                    </label>
+                </div>
+            </div>
+        </aside>
+    
+        <main class="main-viewport">
+            <div id="view-controls" style="position: absolute; top: 1rem; right: 1rem; z-index: 100; display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.25rem; background: rgba(17, 24, 39, 0.2); backdrop-filter: blur(5px); padding: 0.3rem; border-radius: 0.6rem;">
+                <button id="fit-view-btn" class="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-white/10 text-gray-400 hover:text-white/70 transition-colors text-xs opacity-90" title="Fit View to Objects">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 6H3m18 12H3"/>
+                        <path d="M6 3v18M18 3v18"/>
+                    </svg>
+                </button>
+                <button id="cam-top" class="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-white/10 text-gray-400 hover:text-white/70 transition-colors font-semibold text-xs opacity-70" title="Top View (Z)">Z</button>
+                <button id="cam-side" class="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-white/10 text-gray-400 hover:text-white/70 transition-colors font-semibold text-xs opacity-70" title="Side View (X)">X</button>
+                <button id="cam-front" class="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-white/10 text-gray-400 hover:text-white/70 transition-colors font-semibold text-xs opacity-70" title="Front View (Y)">Y</button>
+            </div>
+            
+            <div id="plot-container" class="w-full h-full"></div>
+    
+            <button id="exit-zen-mode" class="exit-mode-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+                <span>Exit Zen</span>
+            </button>
+            <button id="exit-fullscreen-mode" class="exit-mode-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+                <span>Exit Fullscreen</span>
+            </button>
+
+            <div class="status-bar flex items-center justify-end px-6 gap-8">
+                </div>
+        </main>
+    
+        <div class="animation-tray-wrapper visible">
+            <div id="global-animation-tray">
+                <div style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); z-index: 30; display: flex; gap: 8px;">
+                    <button class="btn btn-secondary p-2 h-10 w-10 rounded-full flex items-center justify-center" id="global-play-pause-btn" title="Play/Pause All Animations">
+                        <svg id="global-play-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        <svg id="global-pause-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="10" y1="15" x2="10" y2="9"></line><line x1="14" y1="15" x2="14" y2="9"></line>
+                        </svg>
+                    </button>
+                    <button class="btn btn-secondary p-2 h-10 w-10 rounded-full flex items-center justify-center" id="global-reset-btn" title="Reset All Animations">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path>
+                        </svg>
+                    </button>
+                    <button class="btn btn-secondary p-2 h-10 w-10 rounded-full flex items-center justify-center" id="global-select-all-btn" title="Select All Override Variables">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 11 12 14 22 4"></polyline>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="animation-cards-container" class="w-full h-full flex flex-wrap content-start gap-4 overflow-y-auto p-4 pt-5"></div>
+            </div>
+        </div>
+    
+        <div id="toast" class="toast"></div>
+    
+    </div>
+
+
+    
+
+    <script id="worker-script" type="text/worker">
+            var MarchingCubes = (function() {
+                
+                // http://paulbourke.net/geometry/polygonise/
+                var MarchingCubes = function(resolution) {
+                    this.resolution = resolution;
+                    this.edgeTable = new Int32Array([0x0, 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c, 0x80c, 0x905, 0xa0f, 0xb06, 0xc0a, 0xd03, 0xe09, 0xf00, 0x190, 0x99, 0x393, 0x29a, 0x596, 0x49f, 0x795, 0x69c, 0x99c, 0x895, 0xb9f, 0xa96, 0xd9a, 0xc93, 0xf99, 0xe90, 0x230, 0x339, 0x33, 0x13a, 0x636, 0x73f, 0x435, 0x53c, 0xa3c, 0xb35, 0x83f, 0x936, 0xe3a, 0xf33, 0xc39, 0xd30, 0x3a0, 0x2a9, 0x1a3, 0xaa, 0x7a6, 0x6af, 0x5a5, 0x4ac, 0xbac, 0xaa5, 0x9af, 0x8a6, 0xfaa, 0xea3, 0xda9, 0xca0, 0x460, 0x569, 0x663, 0x76a, 0x66, 0x16f, 0x265, 0x36c, 0xc6c, 0xd65, 0xe6f, 0xf66, 0x86a, 0x963, 0xa69, 0xb60, 0x5f0, 0x4f9, 0x7f3, 0x6fa, 0x1f6, 0xff, 0x3f5, 0x2fc, 0xdfc, 0xcf5, 0xfff, 0xef6, 0x9fa, 0x8f3, 0xbf9, 0xaf0, 0x650, 0x759, 0x453, 0x55a, 0x256, 0x35f, 0x55, 0x15c, 0xe5c, 0xf55, 0xc5f, 0xd56, 0xa5a, 0xb53, 0x859, 0x950, 0x7c0, 0x6c9, 0x5c3, 0x4ca, 0x3c6, 0x2cf, 0x1c5, 0xcc, 0xfcc, 0xec5, 0xdcf, 0xcc6, 0xbca, 0xac3, 0x9c9, 0x8c0, 0x8c0, 0x9c9, 0xac3, 0xbca, 0xcc6, 0xdcf, 0xec5, 0xfcc, 0xcc, 0x1c5, 0x2cf, 0x3c6, 0x4ca, 0x5c3, 0x6c9, 0x7c0, 0x950, 0x859, 0xb53, 0xa5a, 0xd56, 0xc5f, 0xf55, 0xe5c, 0x15c, 0x55, 0x35f, 0x256, 0x55a, 0x453, 0x759, 0x650, 0xaf0, 0xbf9, 0x8f3, 0x9fa, 0xef6, 0xfff, 0xcf5, 0xdfc, 0x2fc, 0x3f5, 0xff, 0x1f6, 0x6fa, 0x7f3, 0x4f9, 0x5f0, 0xb60, 0xa69, 0x963, 0x86a, 0xf66, 0xe6f, 0xd65, 0xc6c, 0x36c, 0x265, 0x16f, 0x66, 0x76a, 0x663, 0x569, 0x460, 0xca0, 0xda9, 0xea3, 0xfaa, 0x8a6, 0x9af, 0xaa5, 0xbac, 0x4ac, 0x5a5, 0x6af, 0x7a6, 0xaa, 0x1a3, 0x2a9, 0x3a0, 0xd30, 0xc39, 0xf33, 0xe3a, 0x936, 0x83f, 0xb35, 0xa3c, 0x53c, 0x435, 0x73f, 0x636, 0x13a, 0x33, 0x339, 0x230, 0xe90, 0xf99, 0xc93, 0xd9a, 0xa96, 0xb9f, 0x895, 0x99c, 0x69c, 0x795, 0x49f, 0x596, 0x29a, 0x393, 0x99, 0x190, 0xf00, 0xe09, 0xd03, 0xc0a, 0xb06, 0xa0f, 0x905, 0x80c, 0x70c, 0x605, 0x50f, 0x406, 0x30a, 0x203, 0x109, 0x0]);
+                    this.triTable = new Int32Array([-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 0, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 2, 1, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 2, 0, 9, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 3, 2, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 3, 11, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 2, 11, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 3, 11, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 9, 8, 3, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 8, 3, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 9, 8, 3, 2, 10, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 8, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 11, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 2, 11, 8, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 11, 8, 10, 2, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 4, 7, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 4, 7, 8, 9, 0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 4, 7, 8, 1, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 2, 10, 9, 0, 4, 7, 8, -1, -1, -1, -1, -1, -1, -1, -1, 4, 7, 8, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 2, 3, 11, 1, 9, 4, 7, 8, -1, -1, -1, -1, -1, -1, -1, -1, 0, 3, 11, 10, 4, 7, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 3, 11, 10, 4, 7, 8, 1, 9, -1, -1, -1, -1, -1, -1, -1, 4, 7, 3, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 4, 7, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 4, 7, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 4, 7, 2, 10, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 4, 7, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 4, 7, 11, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 4, 7, 11, 10, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 2, 1, 4, 7, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 5, 4, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 5, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 5, 4, 10, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 5, 4, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 3, 5, 4, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 5, 4, 11, 3, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 2, 5, 4, 0, 10, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 5, 4, 11, 3, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, 8, 5, 4, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 9, 5, 4, 3, 8, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 5, 4, 3, 8, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 9, 5, 4, 2, 10, 0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, 11, 5, 4, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 5, 4, 8, 1, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 5, 4, 8, 2, 10, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 5, 4, 2, 10, 9, 11, 8, 3, -1, -1, -1, -1, -1, -1, -1, 6, 5, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 5, 10, 9, 0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 5, 1, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 5, 1, 2, 9, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 5, 10, 3, 2, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 5, 10, 9, 0, 1, 11, 3, 2, -1, -1, -1, -1, -1, -1, -1, 6, 5, 1, 11, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 1, 6, 5, 11, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 5, 10, 8, 3, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 5, 10, 9, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 5, 1, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 5, 1, 9, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 5, 10, 11, 8, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 5, 10, 9, 11, 8, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 5, 1, 11, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 5, 1, 9, 11, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 4, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 6, 4, 7, 0, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 2, 6, 4, 7, 1, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 9, 0, 1, 6, 4, 7, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, 3, 6, 4, 7, 2, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 9, 0, 1, 6, 4, 7, 11, 3, 2, -1, -1, -1, -1, -1, -1, -1, 0, 3, 11, 10, 6, 4, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, 7, 6, 4, 10, 1, 9, 11, 3, 0, -1, -1, -1, -1, -1, -1, -1, 8, 6, 4, 7, 3, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 8, 6, 4, 7, 9, 0, 1, 3, -1, -1, -1, -1, -1, -1, -1, -1, 8, 6, 4, 7, 1, 2, 10, 3, 0, -1, -1, -1, -1, -1, -1, -1, 1, 2, 10, 9, 8, 6, 4, 7, 3, 0, -1, -1, -1, -1, -1, -1, 11, 6, 4, 7, 8, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 4, 7, 9, 0, 1, 8, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 4, 7, 1, 2, 10, 8, 0, -1, -1, -1, -1, -1, -1, -1, 1, 2, 10, 9, 11, 6, 4, 7, 8, 0, -1, -1, -1, -1, -1, -1, 9, 5, 7, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 9, 5, 7, 6, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 8, 5, 7, 6, 10, 2, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 9, 5, 7, 6, 10, 2, 1, 0, -1, -1, -1, -1, -1, -1, -1, -1, 11, 5, 7, 6, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 9, 5, 7, 6, 2, 11, 0, 1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 5, 7, 6, 0, 8, 11, 2, -1, -1, -1, -1, -1, -1, -1, -1, 1, 5, 7, 6, 0, 8, 11, 2, 9, 10, -1, -1, -1, -1, -1, -1, 3, 5, 7, 6, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 5, 7, 6, 8, 3, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 5, 7, 6, 8, 3, 1, 2, -1, -1, -1, -1, -1, -1, -1, -1, 9, 5, 7, 6, 8, 3, 1, 2, 10, 0, -1, -1, -1, -1, -1, -1, 11, 5, 7, 6, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 5, 7, 6, 8, 0, 9, 1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 5, 7, 6, 8, 2, 10, 0, -1, -1, -1, -1, -1, -1, -1, -1, 1, 5, 7, 6, 8, 2, 10, 9, 11, 0, -1, -1, -1, -1, -1, -1, 7, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 7, 2, 10, 1, 9, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 7, 2, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 7, 2, 1, 0, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 7, 2, 10, 3, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 7, 2, 10, 1, 9, 0, 11, 3, -1, -1, -1, -1, -1, -1, -1, -1, 7, 2, 1, 11, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 7, 2, 1, 0, 9, 11, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, 7, 2, 10, 8, 0, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 7, 2, 10, 9, 0, 1, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, 7, 2, 1, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 7, 2, 1, 9, 0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, 7, 2, 10, 11, 8, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 9, 0, 11, 8, 7, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, 7, 2, 1, 11, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 7, 2, 1, 0, 9, 11, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 3, 9, 0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 3, 10, 2, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 9, 1, 10, 2, 11, 6, 3, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 11, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 2, 1, 11, 6, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 0, 1, 10, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 8, 6, 3, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 9, 6, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 6, 3, 8, 2, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 9, 6, 3, 8, 1, 10, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 0, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 1, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 2, 8, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 6, 2, 8, 10, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 3, 7, 4, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 3, 7, 4, 8, 0, 9, 1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 3, 7, 4, 8, 1, 2, 10, -1, -1, -1, -1, -1, -1, -1, 1, 2, 10, 0, 9, 11, 6, 3, 7, 4, 8, -1, -1, -1, -1, -1, 11, 6, 0, 7, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 11, 6, 7, 4, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 2, 10, 11, 6, 7, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 11, 6, 7, 4, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, 7, 4, 8, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 9, 7, 4, 8, 6, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 7, 4, 8, 6, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 9, 7, 4, 8, 6, 2, 10, 1, -1, -1, -1, -1, -1, -1, -1, -1, 8, 6, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 9, 6, 11, 8, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 6, 11, 8, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 9, 6, 11, 8, 2, 10, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 5, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 5, 1, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 5, 2, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 5, 11, 3, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 5, 0, 1, 11, 3, 2, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 5, 2, 0, 11, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 2, 10, 9, 5, 11, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, 8, 5, 9, 0, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 8, 5, 9, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 8, 5, 9, 2, 10, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 8, 5, 9, 0, 10, 3, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, 8, 5, 9, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 8, 5, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 8, 5, 9, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 8, 5, 9, 0, 10, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 0, 9, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 2, 10, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 0, 9, 2, 10, 11, 6, 7, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 0, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 11, 6, 7, 0, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 8, 0, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 9, 0, 1, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 10, 2, 1, 8, 3, 0, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 9, 0, 1, 8, 3, 2, 10, -1, -1, -1, -1, -1, -1, 11, 6, 7, 8, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 11, 6, 7, 8, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 8, 0, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 11, 6, 7, 8, 0, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 9, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 9, 5, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 9, 5, 10, 2, 1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 9, 5, 1, 0, 2, 10, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 5, 0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 5, 10, 2, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 11, 6, 7, 5, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 8, 3, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 11, 6, 7, 8, 3, 5, 9, 0, -1, -1, -1, -1, -1, -1, -1, 11, 6, 7, 10, 2, 8, 3, 5, 0, 1, -1, -1, -1, -1, -1, -1, 1, 11, 6, 7, 5, 2, 10, 9, 8, 3, 0, -1, -1, -1, -1, -1, 11, 6, 7, 8, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 11, 6, 7, 8, 5, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 11, 6, 7, 8, 5, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, 1, 11, 6, 7, 8, 5, 2, 10, 9, -1, -1, -1, -1, -1, -1, -1, 10, 6, 7, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 6, 7, 2, 9, 0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 6, 7, 2, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 6, 7, 2, 1, 9, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 6, 7, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 9, 0, 3, 11, 10, 6, 7, 2, -1, -1, -1, -1, -1, -1, -1, 10, 6, 7, 2, 1, 11, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 9, 0, 11, 3, 10, 6, 7, 2, -1, -1, -1, -1, -1, -1, -1, 10, 6, 7, 2, 8, 0, 3, -1, -1, -1, -1, -1, -1, -1, -1, 1, 9, 0, 8, 3, 10, 6, 7, 2, -1, -1, -1, -1, -1, -1, -1, 10, 6, 7, 2, 1, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 9, 0, 8, 3, 10, 6, 7, 2, -1, -1, -1, -1, -1, -1, -1, 10, 6, 7, 2, 11, 8, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 9, 0, 11, 8, 10, 6, 7, 2, -1, -1, -1, -1, -1, -1, -1, 10, 6, 7, 2, 1, 11, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 9, 0, 11, 8, 10, 6, 7, 2, -1, -1, -1, -1, -1, -1, -1, 10, 9, 7, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 7, 6, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 7, 6, 1, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 7, 6, 2, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 7, 6, 3, 2, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 7, 6, 0, 1, 11, 3, 2, -1, -1, -1, -1, -1, -1, -1, 10, 9, 7, 6, 2, 0, 11, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 2, 10, 9, 7, 6, 11, 3, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 7, 6, 8, 0, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 7, 6, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 7, 6, 8, 3, 1, 2, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 7, 6, 8, 3, 2, 0, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 7, 6, 11, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 7, 6, 11, 8, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 7, 6, 11, 8, 2, 0, -1, -1, -1, -1, -1, -1, -1, -1, 1, 2, 10, 9, 7, 6, 11, 8, -1, -1, -1, -1, -1, -1, -1, -1]);
+                };
+                MarchingCubes.prototype.vertex_interp = function(isolevel, p1, p2, valp1, valp2) {
+                    var mu = (isolevel - valp1) / (valp2 - valp1);
+                    return { x: p1.x + mu * (p2.x - p1.x), y: p1.y + mu * (p2.y - p1.y), z: p1.z + mu * (p2.z - p1.z) };
+                };
+                MarchingCubes.prototype.march = function(data, isolevel) {
+                    var res = this.resolution, res2 = res*res;
+                    var verts = [], faces = [];
+                    var vertlist = new Array(12);
+                    for (var z = 0; z < res - 1; z++) {
+                        for (var y = 0; y < res - 1; y++) {
+                            for (var x = 0; x < res - 1; x++) {
+                                var p = x + y * res + z * res2;
+                                var cubeindex = 0;
+                                if (data[p] < isolevel) cubeindex |= 1;
+                                if (data[p + 1] < isolevel) cubeindex |= 2;
+                                if (data[p + res + 1] < isolevel) cubeindex |= 4;
+                                if (data[p + res] < isolevel) cubeindex |= 8;
+                                if (data[p + res2] < isolevel) cubeindex |= 16;
+                                if (data[p + res2 + 1] < isolevel) cubeindex |= 32;
+                                if (data[p + res2 + res + 1] < isolevel) cubeindex |= 64;
+                                if (data[p + res2 + res] < isolevel) cubeindex |= 128;
+                                var bits = this.edgeTable[cubeindex];
+                                if (bits === 0) continue;
+                                var p1 = {x:x,y:y,z:z}, p2={x:x+1,y:y,z:z}, p3={x:x+1,y:y+1,z:z}, p4={x:x,y:y+1,z:z}, p5={x:x,y:y,z:z+1}, p6={x:x+1,y:y,z:z+1}, p7={x:x+1,y:y+1,z:z+1}, p8={x:x,y:y+1,z:z+1};
+                                if (bits & 1) vertlist[0] = this.vertex_interp(isolevel, p1, p2, data[p], data[p + 1]);
+                                if (bits & 2) vertlist[1] = this.vertex_interp(isolevel, p2, p3, data[p + 1], data[p + res + 1]);
+                                if (bits & 4) vertlist[2] = this.vertex_interp(isolevel, p3, p4, data[p + res + 1], data[p + res]);
+                                if (bits & 8) vertlist[3] = this.vertex_interp(isolevel, p4, p1, data[p + res], data[p]);
+                                if (bits & 16) vertlist[4] = this.vertex_interp(isolevel, p5, p6, data[p + res2], data[p + res2 + 1]);
+                                if (bits & 32) vertlist[5] = this.vertex_interp(isolevel, p6, p7, data[p + res2 + 1], data[p + res2 + res + 1]);
+                                if (bits & 64) vertlist[6] = this.vertex_interp(isolevel, p7, p8, data[p + res2 + res + 1], data[p + res2 + res]);
+                                if (bits & 128) vertlist[7] = this.vertex_interp(isolevel, p8, p5, data[p + res2 + res], data[p + res2]);
+                                if (bits & 256) vertlist[8] = this.vertex_interp(isolevel, p1, p5, data[p], data[p + res2]);
+                                if (bits & 512) vertlist[9] = this.vertex_interp(isolevel, p2, p6, data[p + 1], data[p + res2 + 1]);
+                                if (bits & 1024) vertlist[10] = this.vertex_interp(isolevel, p3, p7, data[p + res + 1], data[p + res2 + res + 1]);
+                                if (bits & 2048) vertlist[11] = this.vertex_interp(isolevel, p4, p8, data[p + res], data[p + res2 + res]);
+                                
+                                var i = 0;
+                                cubeindex <<= 4;
+                                
+                                while ((cubeindex + i) < this.triTable.length && this.triTable[cubeindex + i] !== -1) {
+                                    
+                                    const index1 = this.triTable[cubeindex + i];
+                                    const index2 = this.triTable[cubeindex + i + 1];
+                                    const index3 = this.triTable[cubeindex + i + 2];
+                                
+                                    
+                                    const v1 = vertlist[index1];
+                                    const v2 = vertlist[index2];
+                                    const v3 = vertlist[index3];
+                                
+                                    
+                                    
+                                    if (v1 && v2 && v3) {
+                                        
+                                        const baseIndex = verts.length;
+                                
+                                        
+                                        verts.push(v1, v2, v3);
+                                        
+                                        
+                                        faces.push(baseIndex, baseIndex + 1, baseIndex + 2);
+                                    }
+                                    
+                                    
+                                    i += 3;
+                                }
+                            }
+                        }
+                    }
+                    return { vertices: verts, faces: faces };
+                };
+                return MarchingCubes;
+            })();
+    
+        self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.5.0/math.min.js');
+        const linspace=(start,end,num)=>{if(num===0)return[];if(num<=1)return[start];const t=(end-start)/(num-1);return Array.from({length:num},(_,r)=>start+t*r)};
+        
+        function generateImplicitData({ equation: eq, xMin, xMax, yMin, yMax, zMin, zMax, quality, scope, xMaxOverride, yMaxOverride, zMaxOverride, slicingEnabled, sliceAxes, slicePositions }) {
+            const p = math.parse(eq).compile();
+            const size = quality * quality * quality;
+        
+            if (size <= 0 || !isFinite(size)) {
+                throw new Error("Invalid quality setting produced a non-positive array size.");
+            }
+            const d = new Float32Array(size);
+        
+            let minVal = Infinity, maxVal = -Infinity;
+        
+            const finalXMax = xMaxOverride !== undefined ? xMaxOverride : xMax;
+            const finalYMax = yMaxOverride !== undefined ? yMaxOverride : yMax;
+            const finalZMax = zMaxOverride !== undefined ? zMaxOverride : zMax;
+        
+            const x_step = (finalXMax - xMin) / (quality - 1);
+            const y_step = (finalYMax - yMin) / (quality - 1);
+            const z_step = (finalZMax - zMin) / (quality - 1);
+        
+            const sliceWidth = Math.max(x_step, y_step, z_step) * 2.5;
+        
+            let index = 0;
+            for (let k = 0; k < quality; k++) { 
+                for (let j = 0; j < quality; j++) { 
+                    for (let i = 0; i < quality; i++) { 
+                        const x_coord = xMin + i * x_step;
+                        const y_coord = yMin + j * y_step;
+                        const z_coord = zMin + k * z_step;
+        
+                        
+                        if (slicingEnabled && sliceAxes && sliceAxes.length > 0) {
+                            let isOutsideSlice = false;
+                            
+                            for (const axis of sliceAxes) {
+                                const coord = { x: x_coord, y: y_coord, z: z_coord }[axis];
+                                const position = slicePositions[axis];
+                                if (Math.abs(coord - position) > sliceWidth / 2) {
+                                    isOutsideSlice = true;
+                                    break; 
+                                }
+                            }
+                            if (isOutsideSlice) {
+                                d[index++] = 1e6;
+                                continue;
+                            }
+                        }
+                        
+        
+                        try {
+                            const val = p.evaluate({ ...scope, x: x_coord, y: y_coord, z: z_coord });
+                            if (isFinite(val)) {
+                                d[index++] = val;
+                                if (val < minVal) minVal = val;
+                                if (val > maxVal) maxVal = val;
+                            } else {
+                                d[index++] = 1e6;
+                            }
+                        } catch (err) {
+                            d[index++] = 1e6;
+                        }
+                    }
+                }
+            }
+            const marchingCubes = new MarchingCubes(quality);
+            const result = marchingCubes.march(d, 0);
+        
+            result.vertices.forEach(v => {
+                v.x = xMin + v.x * x_step;
+                v.y = yMin + v.y * y_step;
+                v.z = zMin + v.z * z_step;
+            });
+        
+            return { data: { vertices: result.vertices, faces: result.faces, zMin: minVal, zMax: maxVal }, stats: { dataPoints: result.vertices.length } };
+        }
+
+        self.onmessage=function(e){
+            const t=e.data;
+            try{
+                let r;
+                switch(t.mode){
+                    case"surface":r=generateSurfaceData(t);break;
+                    case"vector":r=generateVectorData(t);break;
+                    case"parametric":r=generateParametricData(t);break;
+                    case"curve":r=generateParametricCurveData(t);break;
+                    case"implicit":r=generateImplicitData(t);break
+
+                }
+                self.postMessage({status:"success",data:r.data,stats:r.stats,id:t.id})
+            }catch(r){
+                self.postMessage({status:"error",message:r.message,id:t.id})
+            }
+        };
+
+        function generateSurfaceData({equation:e,xMin:t,xMax:r,yMin:a,yMax:n,quality:o,xMaxOverride:i,yMaxOverride:l,scope:s}){const c=void 0!==i?i:r,d=void 0!==l?l:n,p=linspace(t,c,o),m=linspace(a,d,o),h=math.parse(e).compile(),f=[],g=[];let u=1/0,v=-1/0;for(const e of m)for(const t of p)try{const r=h.evaluate({...s,x:t,y:e});isFinite(r)?(f.push(t,e,r),g.push(r),r<u&&(u=r),r>v&&(v=r)):(f.push(t,e,0),g.push(NaN))}catch(err){f.push(t,e,0),g.push(NaN)}const w=[];for(let e=0;e<o-1;e++)for(let t=0;t<o-1;t++){const r=e*o+t,a=r+1,n=r+o,s=n+1;w.push(r,n,a),w.push(a,n,s)}return{data:{vertices:new Float32Array(f),indices:new Uint32Array(w),values:new Float32Array(g),width:o,height:o,zMin:u,zMax:v},stats:{dataPoints:o*o}}}
+        function generateVectorData({fx:e,fy:t,fz:r,xMin:a,xMax:n,yMin:o,yMax:s,zMin:i,zMax:l,density:c,xMaxOverride:d,yMaxOverride:p,zMaxOverride:h,scope:m}){const g=void 0!==d?d:n,f=void 0!==p?p:s,q=void 0!==h?h:l,v=linspace(a,g,c),b=linspace(o,f,c),w=linspace(i,q,c),y=math.parse(e).compile(),x=math.parse(t).compile(),E=math.parse(r).compile(),M=[],S=c*c*c;let z=1/0,A=-1/0;for(const e of v)for(const t of b)for(const r of w)try{const a={...m,x:e,y:t,z:r},n=y.evaluate(a),o=x.evaluate(a),s=E.evaluate(a);if([n,o,s].every(isFinite)){const i=Math.sqrt(n*n+o*o+s*s);i>1e-6&&(i<z&&(z=i),i>A&&(A=i),M.push({origin:{x:e,y:t,z:r},components:{x:n,y:o,z:s},mag:i}))}}catch(err){}z===1/0&&(z=0);const V={vectors:M,minMag:z,maxMag:A,domain:{xMin:a,xMax:n,yMin:o,yMax:s,zMin:i,zMax:l},density:c};return{data:V,stats:{dataPoints:M.length}}}
+        function generateParametricData({xExpr:e,yExpr:t,zExpr:r,uMin:a,uMax:n,vMin:o,vMax:s,quality:i,uMaxOverride:c,vMaxOverride:d,scope:p}){const h=void 0!==c?c:n,m=void 0!==d?d:s,f=linspace(a,h,i),g=linspace(o,m,i),q=math.parse(e).compile(),v=math.parse(t).compile(),b=math.parse(r).compile(),w=[],y=[];let x=1/0,E=-1/0;for(const e of g)for(const t of f)try{const r={...p,u:t,v:e},a=q.evaluate(r),n=v.evaluate(r),o=b.evaluate(r);[a,n,o].every(isFinite)?(w.push(a,n,o),y.push(o),o<x&&(x=o),o>E&&(E=o)):(w.push(0,0,0),y.push(NaN))}catch(err){w.push(0,0,0),y.push(NaN)}const M=[];for(let e=0;e<i-1;e++)for(let t=0;t<i-1;t++){const r=e*i+t,a=r+1,n=r+i,o=n+1;M.push(r,n,a),M.push(a,n,o)}return{data:{vertices:new Float32Array(w),indices:new Uint32Array(M),values:new Float32Array(y),width:i,height:i,zMin:x,zMax:E},stats:{dataPoints:i*i}}}
+        function generateParametricCurveData({xExpr:e,yExpr:t,zExpr:r,tMin:a,tMax:n,quality:o,tMaxOverride:i,scope:l}){const c=void 0!==i?i:n,s=linspace(a,c,o),d=math.parse(e).compile(),p=math.parse(t).compile(),h=math.parse(r).compile(),m=[],f=[];for(const e of s)try{const t={...l,t:e},r=d.evaluate(t),n=p.evaluate(t),a=h.evaluate(t);[r,n,a].every(isFinite)&&(m.push(r,n,a),f.push(e))}catch(err){}return{data:{vertices:new Float32Array(m),values:new Float32Array(f),tMin:a,tMax:c},stats:{dataPoints:m.length/3}}}
+       
+    </script>
+    <script>
         
         class ThreeJSPlotter {
             constructor(appController) {
@@ -1019,7 +2884,9 @@
             }
 
             initializeWorker() {
-                this.worker = new Worker('worker.js');
+                const workerScript = document.getElementById('worker-script').textContent;
+                const workerBlob = new Blob([workerScript], { type: 'application/javascript' });
+                this.worker = new Worker(URL.createObjectURL(workerBlob));
                 this.worker.onmessage = (e) => {
                     const { id } = e.data;
                     this.isPlotting.delete(id);
@@ -1459,8 +3326,7 @@
             
 
             debounce(func, wait) { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), wait); }; }
-
-
+            
             initializePresets() {
                 this.presets = {
                     // ... (all single-mode presets remain the same)
@@ -1585,9 +3451,6 @@
                     ],
                 }
             }
-            
-            
-
 
             renderPresets() {
                 const container = document.getElementById('presets-container');
@@ -3289,4 +5152,152 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => { window.app = new AppController(); });
+    </script>
+    <div id="calculator-popup" class="hidden fixed z-50 bg-gray-800 border-2 border-blue-500/50 rounded-lg shadow-2xl p-3" style="width:290px;">
+        <div id="calculator-drag-handle" class="flex justify-between items-center pb-2 mb-2 border-b border-gray-700 cursor-move">
+            <span class="text-sm font-bold text-blue-400">Math Assistant</span>
+            <button id="calculator-close-btn" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+        </div>
+        <div class="w-full bg-gray-900 border border-gray-700 rounded-md p-1 mb-3">
+            <span id="calculator-display-mq"></span>
+        </div>
+        <div id="calculator-keypad" class="grid grid-cols-5 gap-2">
+            </div>
+        <div class="mt-3">
+            <button id="calculator-done-btn" class="w-full btn btn-primary">Done</button>
+        </div>
+    </div>
+
+
+    <div id="info-modal-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 hidden">
+        <div id="info-modal-panel" class="bg-bg-sidebar border border-border-color rounded-lg shadow-2xl p-6 w-full max-w-2xl text-text-light flex flex-col" style="min-height: 500px;">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Welcome to 6AxisAnimation!</h2>
+                <button id="info-modal-close-btn" class="tool-button !w-9 !h-9">&times;</button>
+            </div>
     
+            <div class="flex-grow relative">
+                
+                <div class="info-slide absolute inset-0 space-y-3">
+                    <h3 class="font-bold text-lg text-text-light">1. The Playground</h3>
+                    <p>This is your 3D canvas. Start by clicking the <code class="bg-bg-input px-2 py-1 rounded-md font-mono text-xs text-color-primary">+ Add Object</code> button in the **left panel** to choose a plot type. You can add multiple objects to create complex scenes.</p>
+                    <img src="https://i.imgur.com/8Q5kG5L.png" alt="Playground UI Highlight" class="rounded-lg border border-border-color">
+                </div>
+    
+                <div class="info-slide absolute inset-0 space-y-3">
+                    <h3 class="font-bold text-lg text-text-light">2. Configuration Panel</h3>
+                    <p>Each object you create appears as a card in the left panel. Click on a card's header to expand its settings. Here you can change its **mathematical formula, color, quality**, and more.</p>
+                    <img src="https://i.imgur.com/uR2iL1u.png" alt="Configuration Panel Highlight" class="rounded-lg border border-border-color">
+                </div>
+    
+                <div class="info-slide absolute inset-0 space-y-3">
+                    <h3 class="font-bold text-lg text-text-light">3. The Animation Panel</h3>
+                    <p>When an object can be animated, its controller appears in the **right panel**. Here, you can bring your plots to life using three powerful modes. In any mode, the variable `T` in your formulas corresponds to the main slider's value.</p>
+                    <img src="https://i.imgur.com/k28b1xT.png" alt="Animation Panel UI" class="rounded-lg border border-border-color">
+                </div>
+    
+                <div class="info-slide absolute inset-0 space-y-3">
+                    <h3 class="font-bold text-lg" style="color: var(--color-primary);">V-Mode (Variable Mode)</h3>
+                    <p class="font-semibold">Use this mode to animate an object's **shape and internal geometry**.</p>
+                    <div class="text-sm space-y-3 p-3 bg-bg-input rounded-md border border-border-subtle">
+                        <p><b>How it works:</b> V-Mode lets the main `T` slider take control of a plot's core variables (like `x`, `u`, or `t`).</p>
+                        <ol class="list-decimal list-inside ml-2">
+                            <li><b>Enable V-Mode</b> by ticking its checkbox.</li>
+                            <li><b>Select a Variable</b> by ticking an "OVERRIDE" box (e.g., for `X`).</li>
+                            <li><b>Set the Range</b> for the override.</li>
+                            <li>As you move the `T` slider, the object's geometry will be re-plotted in real-time, with the `X` value changing according to `T`'s position in your new range.</li>
+                        </ol>
+                    </div>
+                </div>
+    
+                <div class="info-slide absolute inset-0 space-y-3">
+                    <h3 class="font-bold text-lg" style="color: var(--color-secondary);">P-Mode (Transform Mode)</h3>
+                    <p class="font-semibold">Use this mode to animate an object's **Position, Rotation, and Scale**.</p>
+                     <div class="text-sm space-y-3 p-3 bg-bg-input rounded-md border border-border-subtle">
+                        <p><b>How it works:</b> P-Mode applies transforms *after* the object is plotted, moving it as a whole without changing its shape.</p>
+                        <ol class="list-decimal list-inside ml-2">
+                           <li><b>Enable P-Mode</b> by ticking its checkbox.</li>
+                           <li>Enter mathematical formulas using `T` into any of the transform fields.</li>
+                        </ol>
+                        <p class="font-semibold mt-2">Example: Move an object from (5, 2, 0) to (-8, 0, 10)</p>
+                        <ul class="list-disc list-inside ml-2">
+                            <li>Set the main T-slider range from **Min: 0** to **Max: 1**.</li>
+                            <li>In the Position fields, enter these linear interpolation formulas:
+                                <div class="grid grid-cols-3 gap-2 my-1">
+                                    <code class="bg-bg-input-focus p-2 rounded font-mono text-xs text-center">X: 5 - 13*T</code>
+                                    <code class="bg-bg-input-focus p-2 rounded font-mono text-xs text-center">Y: 2 - 2*T</code>
+                                    <code class="bg-bg-input-focus p-2 rounded font-mono text-xs text-center">Z: 10*T</code>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+    
+                <div class="info-slide absolute inset-0 space-y-3">
+                    <h3 class="font-bold text-lg" style="color: var(--color-accent);">Physics Mode</h3>
+                    <p class="font-semibold">Use this mode for simple, physics-based path animation.</p>
+                     <div class="text-sm space-y-3 p-3 bg-bg-input rounded-md border border-border-subtle">
+                        <p><b>How it works:</b> The object attempts to fly between waypoints using forces. The `T` slider represents time elapsed.</p>
+                        <ol class="list-decimal list-inside ml-2">
+                            <li><b>Enable Physics</b> by ticking its checkbox.</li>
+                            <li><b>Add Waypoints</b> to create a path for the object to target.</li>
+                            <li><b>Set Properties</b> like Mass, Gravity, and Thrust.</li>
+                        </ol>
+                        <p class="font-semibold mt-2">Example: A 5-second rocket launch</p>
+                        <ul class="list-disc list-inside ml-2">
+                            <li>Add a waypoint high above the origin (e.g., at 0, 0, 50).</li>
+                            <li>Set the `Thrust` property to an expression that turns off after 5 seconds: <br><code class="bg-bg-input-focus p-2 rounded font-mono text-xs">if(T < 5, 2000, 0)</code></li>
+                        </ul>
+                    </div>
+                </div>
+    
+                <div class="info-slide absolute inset-0 space-y-3 flex flex-col items-center justify-center text-center">
+                    <h3 class="font-bold text-lg text-text-light">You're All Set!</h3>
+                    <p>You can re-watch this guide anytime by clicking the <br> <code class="bg-bg-input p-1 rounded font-mono text-xs">( i )</code> button in the top-right toolbar.</p>
+                    <p class="mt-4">Happy plotting!</p>
+                </div>
+            </div>
+    
+            <div class="flex justify-between items-center mt-auto pt-4 border-t border-border-color">
+                <button id="info-modal-prev" class="btn btn-secondary">Previous</button>
+                <div id="info-modal-counter" class="text-sm font-mono"></div>
+                <button id="info-modal-next" class="btn btn-primary">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tutorial-highlighter"></div>
+    <div id="tutorial-modal-overlay" class="fixed inset-0 bg-black/70 z-[2000] flex items-center justify-center p-4 hidden">
+        <div id="tutorial-modal-panel" class="bg-bg-sidebar border border-border-color rounded-lg shadow-2xl p-6 w-full max-w-sm text-text-light flex flex-col">
+            <h2 id="tutorial-title" class="text-xl font-bold mb-3"></h2>
+            <p id="tutorial-text" class="text-text-label text-sm mb-4 flex-grow"></p>
+            <div class="flex justify-between items-center mt-auto pt-4 border-t border-border-color">
+                <button id="tutorial-prev-btn" class="btn btn-secondary">Previous</button>
+                <div id="tutorial-counter" class="text-sm font-mono"></div>
+                <button id="tutorial-next-btn" class="btn btn-primary">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="rotate-prompt" class="hidden fixed inset-0 bg-bg-main-start z-[9999] flex-col items-center justify-center text-center p-4">
+        <div class="phone-container mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" class="mb-2">
+                <g class="animating-phone">
+                    <rect x="7" y="3" width="10" height="18" rx="2" stroke="var(--color-primary)" stroke-width="1.5" fill="none"/>
+                    <circle cx="12" cy="6" r="0.5" fill="var(--color-primary)"/>
+                    <rect x="10" y="18" width="4" height="1" rx="0.5" fill="var(--color-primary)"/>
+                </g>
+            </svg>
+            <div class="w-12 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent rounded-full opacity-50"></div>
+        </div>
+        <h2 class="text-3xl font-bold text-text-light mb-3 tracking-tight">Rotate Your Device</h2>
+        <p class="text-text-muted text-sm leading-relaxed max-w-sm">Turn your device to landscape mode or use desktop for the best experience</p>
+        <div class="mt-4 flex space-x-1">
+            <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+            <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style="animation-delay: 0.2s;"></div>
+            <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style="animation-delay: 0.4s;"></div>
+        </div>
+    </div>
+
+</body>
+</html>

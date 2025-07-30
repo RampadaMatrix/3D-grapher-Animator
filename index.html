@@ -2,7 +2,7 @@
 <html lang="en">
  <head>
   <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <meta content="width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=0.5, maximum-scale=3.0" name="viewport"/>
   <script src="https://cdn.tailwindcss.com">
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
@@ -35,7 +35,7 @@
   <div class="app-grid">
    <header class="top-bar flex items-center justify-between px-6 backdrop-blur-lg">
     <h1 class="logo">
-      6Axis Animation
+     6AxisAnimation
     </h1>
     <div class="flex items-center gap-4" style="margin-left: 250px;">
      <div class="mode-tabs flex justify-end">
@@ -105,9 +105,9 @@
          </path>
         </svg>
        </button>
-       <button class="tool-button !w-9 !h-9" id="fullscreen-toggle" title="Fullscreen Canvas">
+       <button class="tool-button !w-9 !h-9" id="force-fullscreen-btn" title="Toggle Fullscreen">
         <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
-         <path d="M3 7V3h4M21 7V3h-4M7 21H3v-4M17 21H21v-4">
+         <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3">
          </path>
         </svg>
        </button>
@@ -401,9 +401,11 @@
    </aside>
    <main class="main-viewport">
     <div id="view-controls" style="position: absolute; top: 1rem; right: 1rem; z-index: 100; display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.25rem; background: rgba(17, 24, 39, 0.2); backdrop-filter: blur(5px); padding: 0.3rem; border-radius: 0.6rem;">
-     <button class="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-white/10 text-gray-400 hover:text-white/70 transition-colors text-xs opacity-90" id="cam-reset" title="Reset View">
+     <button class="w-8 h-8 flex items-center justify-center rounded-md bg-transparent hover:bg-white/10 text-gray-400 hover:text-white/70 transition-colors text-xs opacity-90" id="fit-view-btn" title="Fit View to Objects">
       <svg fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewbox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg">
-       <path d="M4 4h7v7M20 20h-7v-7M4 4l16 16">
+       <path d="M21 6H3m18 12H3">
+       </path>
+       <path d="M6 3v18M18 3v18">
        </path>
       </svg>
      </button>
@@ -508,7 +510,7 @@
    <div class="bg-bg-sidebar border border-border-color rounded-lg shadow-2xl p-6 w-full max-w-2xl text-text-light flex flex-col" id="info-modal-panel" style="min-height: 500px;">
     <div class="flex justify-between items-center mb-4">
      <h2 class="text-xl font-bold">
-      Welcome to 6Axis Animation!
+      Welcome to 6AxisAnimation!
      </h2>
      <button class="tool-button !w-9 !h-9" id="info-modal-close-btn">
       ×
@@ -731,6 +733,36 @@
      <button class="btn btn-primary" id="tutorial-next-btn">
       Next
      </button>
+    </div>
+   </div>
+  </div>
+  <div class="hidden fixed inset-0 bg-bg-main-start z-[9999] flex-col items-center justify-center text-center p-4" id="rotate-prompt">
+   <div class="phone-container mb-6">
+    <svg class="mb-2" height="80" viewbox="0 0 24 24" width="80" xmlns="http://www.w3.org/2000/svg">
+     <g class="animating-phone">
+      <rect fill="none" height="18" rx="2" stroke="var(--color-primary)" stroke-width="1.5" width="10" x="7" y="3">
+      </rect>
+      <circle cx="12" cy="6" fill="var(--color-primary)" r="0.5">
+      </circle>
+      <rect fill="var(--color-primary)" height="1" rx="0.5" width="4" x="10" y="18">
+      </rect>
+     </g>
+    </svg>
+    <div class="w-12 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent rounded-full opacity-50">
+    </div>
+   </div>
+   <h2 class="text-3xl font-bold text-text-light mb-3 tracking-tight">
+    Rotate Your Device
+   </h2>
+   <p class="text-text-muted text-sm leading-relaxed max-w-sm">
+    Turn your device to landscape mode or use desktop for the best experience
+   </p>
+   <div class="mt-4 flex space-x-1">
+    <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse">
+    </div>
+    <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style="animation-delay: 0.2s;">
+    </div>
+    <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style="animation-delay: 0.4s;">
     </div>
    </div>
   </div>
