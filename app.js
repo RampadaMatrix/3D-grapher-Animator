@@ -2500,22 +2500,22 @@
                     return;
                 }
             
-                // --- START: New Complexity Calculation ---
+                // --- START: New Granular Complexity Calculation ---
                 let complexityScore = 0;
                 animatableObjects.forEach(obj => {
                     const quality = obj.config?.quality || 100;
-                    // Heavy surfaces/implicits get 3 points
-                    if ((obj.type === 'surface' || obj.type === 'parametric' || obj.type === 'implicit') && quality > 120) {
-                        complexityScore += 3;
-                    // Heavy curves get 2 points
+            
+                    if (obj.type === 'implicit') {
+                        complexityScore += 5; // Implicit surfaces are always heavy
+                    } else if ((obj.type === 'surface' || obj.type === 'parametric') && quality > 80) {
+                        complexityScore += 3; // High-quality surfaces are heavy
                     } else if (obj.type === 'curve' && quality > 1000) {
-                        complexityScore += 2;
-                    // All other objects get 1 point
+                        complexityScore += 2; // High-quality curves are moderately heavy
                     } else {
-                        complexityScore += 1;
+                        complexityScore += 1; // All other objects are standard
                     }
                 });
-                // --- END: New Complexity Calculation ---
+                // --- END: New Granular Complexity Calculation ---
             
                 // Calculate buffer time based on the total complexity score
                 const bufferTimeInSeconds = Math.floor(complexityScore / 3);
