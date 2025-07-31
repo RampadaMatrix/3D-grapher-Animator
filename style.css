@@ -1288,6 +1288,11 @@
             pointer-events: auto;
         }
 
+        #buffering-overlay {
+            display: flex; /* This ensures it's a flex container when not hidden */
+        }
+
+
         @media (max-width: 768px) and (orientation: portrait) {
             /* Hide the main application grid */
             .app-grid {
@@ -1388,6 +1393,11 @@
               glow-pulse 2s ease-in-out infinite,
               float 4s ease-in-out infinite;
           }
+    
+
+
+
+
 
         
     

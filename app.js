@@ -909,8 +909,10 @@
                 this.globalPlayIcon = document.getElementById('global-play-icon');
                 this.globalPauseIcon = document.getElementById('global-pause-icon');
                 this.slicingEnabledToggle = document.getElementById('slicing-enabled-toggle');
+
+                this.bufferingOverlay = document.getElementById('buffering-overlay');
+                this.bufferingText = document.getElementById('buffering-text');
             
-                
                 this.sliceAxisCheckboxes = document.querySelectorAll('.slicing-axis-toggle input[type="checkbox"]');
                 this.slicePositionSliders = {
                     x: document.getElementById('slice-position-slider-x'),
@@ -2492,11 +2494,43 @@
             }
 
             playAllAnimations() {
-                this.playgroundObjects.forEach(obj => {
-                    if (obj.animation && !obj.animation.isPlaying) {
+                const animatableObjects = this.playgroundObjects.filter(obj => obj.animation && !obj.animation.isPlaying);
+            
+                if (animatableObjects.length === 0) {
+                    return;
+                }
+            
+                // Calculate 1 second of buffer time for every 3 objects
+                const bufferTimeInSeconds = Math.floor(animatableObjects.length / 3);
+                const bufferTimeInMs = bufferTimeInSeconds * 1000;
+            
+                if (bufferTimeInMs > 0) {
+                    // --- Buffering Logic ---
+                    this.bufferingOverlay.classList.remove('hidden');
+                    let countdown = bufferTimeInSeconds;
+                    this.bufferingText.textContent = `Preparing animation... ${countdown}s`;
+            
+                    const countdownInterval = setInterval(() => {
+                        countdown--;
+                        this.bufferingText.textContent = `Preparing animation... ${countdown}s`;
+                        if (countdown <= 0) {
+                            clearInterval(countdownInterval);
+                        }
+                    }, 1000);
+            
+                    // After the buffer time, hide the overlay and start all animations
+                    setTimeout(() => {
+                        this.bufferingOverlay.classList.add('hidden');
+                        animatableObjects.forEach(obj => {
+                            this.startAnimation(obj.id);
+                        });
+                    }, bufferTimeInMs);
+            
+                } else {
+                    animatableObjects.forEach(obj => {
                         this.startAnimation(obj.id);
-                    }
-                });
+                    });
+                }
             }
 
             pauseAllAnimations() {
