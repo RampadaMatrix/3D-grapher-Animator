@@ -2500,12 +2500,29 @@
                     return;
                 }
             
-                // Calculate 1 second of buffer time for every 3 objects
-                const bufferTimeInSeconds = Math.floor(animatableObjects.length / 3);
+                // --- START: New Complexity Calculation ---
+                let complexityScore = 0;
+                animatableObjects.forEach(obj => {
+                    const quality = obj.config?.quality || 100;
+                    // Heavy surfaces/implicits get 3 points
+                    if ((obj.type === 'surface' || obj.type === 'parametric' || obj.type === 'implicit') && quality > 120) {
+                        complexityScore += 3;
+                    // Heavy curves get 2 points
+                    } else if (obj.type === 'curve' && quality > 1000) {
+                        complexityScore += 2;
+                    // All other objects get 1 point
+                    } else {
+                        complexityScore += 1;
+                    }
+                });
+                // --- END: New Complexity Calculation ---
+            
+                // Calculate buffer time based on the total complexity score
+                const bufferTimeInSeconds = Math.floor(complexityScore / 3);
                 const bufferTimeInMs = bufferTimeInSeconds * 1000;
             
                 if (bufferTimeInMs > 0) {
-                    // --- Buffering Logic ---
+                    // --- Buffering Logic (Unchanged) ---
                     this.bufferingOverlay.classList.remove('hidden');
                     let countdown = bufferTimeInSeconds;
                     this.bufferingText.textContent = `Preparing animation... ${countdown}s`;
@@ -2518,7 +2535,6 @@
                         }
                     }, 1000);
             
-                    // After the buffer time, hide the overlay and start all animations
                     setTimeout(() => {
                         this.bufferingOverlay.classList.add('hidden');
                         animatableObjects.forEach(obj => {
@@ -2527,6 +2543,7 @@
                     }, bufferTimeInMs);
             
                 } else {
+                    // --- No Buffer Needed ---
                     animatableObjects.forEach(obj => {
                         this.startAnimation(obj.id);
                     });
