@@ -2500,7 +2500,6 @@
                     return;
                 }
             
-                // --- START: New Granular Complexity Calculation ---
                 let complexityScore = 0;
                 animatableObjects.forEach(obj => {
                     const quality = obj.config?.quality || 100;
@@ -2515,21 +2514,21 @@
                         complexityScore += 1; // All other objects are standard
                     }
                 });
-                // --- END: New Granular Complexity Calculation ---
             
-                // Calculate buffer time based on the total complexity score
                 const bufferTimeInSeconds = Math.floor(complexityScore / 3);
                 const bufferTimeInMs = bufferTimeInSeconds * 1000;
             
-                if (bufferTimeInMs > 0) {
-                    // --- Buffering Logic (Unchanged) ---
+                // --- LOGIC UPDATE ---
+                // Only trigger the buffer if the time is > 0 AND there is more than one object.
+                if (bufferTimeInMs > 0 && animatableObjects.length > 1) {
+                    // --- Buffering Logic ---
                     this.bufferingOverlay.classList.remove('hidden');
                     let countdown = bufferTimeInSeconds;
-                    this.bufferingText.textContent = `Preparing animation... ${countdown}s`;
+                    this.bufferingText.textContent = `Syncing animations... ${countdown}s`;
             
                     const countdownInterval = setInterval(() => {
                         countdown--;
-                        this.bufferingText.textContent = `Preparing animation... ${countdown}s`;
+                        this.bufferingText.textContent = `Syncing animations... ${countdown}s`;
                         if (countdown <= 0) {
                             clearInterval(countdownInterval);
                         }
@@ -2544,6 +2543,7 @@
             
                 } else {
                     // --- No Buffer Needed ---
+                    // Play immediately if there's only one object, or if the scene is not complex.
                     animatableObjects.forEach(obj => {
                         this.startAnimation(obj.id);
                     });
