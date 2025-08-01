@@ -2505,7 +2505,7 @@
                     const quality = obj.config?.quality || 100;
             
                     if (obj.type === 'implicit') {
-                        complexityScore += 200; // Implicit surfaces are always heavy
+                        complexityScore += 20; // Implicit surfaces are always heavy
                     } else if ((obj.type === 'surface' || obj.type === 'parametric') && quality > 80) {
                         complexityScore += 3; // High-quality surfaces are heavy
                     } else if (obj.type === 'curve' && quality > 1000) {
