@@ -2733,26 +2733,28 @@
                
                 this.renderAllPlotsDebounced = this.debounce(() => this.plotter.renderAllPlots(), 50);
             
-                // --- START: Preloading and Tutorial Logic ---
+                // --- START: New, Smarter Preloading Logic ---
                 const loadedFromUrl = this.loadStateFromURL();
-                if (!loadedFromUrl && !localStorage.getItem('plotterProTutorialCompleted')) {
-                    // This block runs ONLY ONCE for a new visitor
+            
+                if (loadedFromUrl) {
+                    // State is loaded from a shared URL, do nothing else.
+                } else if (!localStorage.getItem('plotterProTutorialCompleted')) {
+                    // This is a user's VERY FIRST visit.
                     this.switchMode('playground', true);
                     const atomPreset = this.playgroundPresets['Atom'];
                     if (atomPreset) {
                         this.loadPlaygroundPreset(atomPreset);
                     }
-                    // Start the tutorial after a short delay to allow the scene to render
                     setTimeout(() => this.startTutorial(), 500);
-                } else if (!loadedFromUrl) {
-                    // This block runs for returned visitors
-                    this.switchMode('playground', true);
-                    const defaultPreset = this.playgroundPresets['Atom'];
-                    if (defaultPreset) {
-                        this.loadPlaygroundPreset(defaultPreset);
+                } else {
+                    // This is a RETURNING user.
+                    const loadedFromStorage = this.loadLastState();
+                    if (!loadedFromStorage) {
+                        // If they have no saved state, give them a clean slate.
+                        this.switchMode('playground', true);
                     }
                 }
-                // --- END: Preloading and Tutorial Logic ---
+                // --- END: New Preloading Logic ---
             
                 this.renderGlobalAnimationTray();
             }
@@ -2774,6 +2776,8 @@
                 this.globalPlayIcon = document.getElementById('global-play-icon');
                 this.globalPauseIcon = document.getElementById('global-pause-icon');
                 this.slicingEnabledToggle = document.getElementById('slicing-enabled-toggle');
+                this.debouncedAutoSave = this.debounce(() => this.autoSaveState(), 1000);
+            }
             
                 
                 this.sliceAxisCheckboxes = document.querySelectorAll('.slicing-axis-toggle input[type="checkbox"]');
@@ -2972,6 +2976,31 @@
 
                     this.mathFields[id] = mathField;
                 });
+            }
+
+            autoSaveState() {
+                try {
+                    const settings = this.collectSettings();
+                    const jsonString = JSON.stringify(settings);
+                    localStorage.setItem('plotterProLastState', jsonString);
+                } catch (e) {
+                    console.error("Auto-save failed:", e);
+                }
+            }
+            
+            loadLastState() {
+                const savedState = localStorage.getItem('plotterProLastState');
+                if (savedState) {
+                    try {
+                        const settings = JSON.parse(savedState);
+                        this.applySettings(settings);
+                        return true; // Return true on successful load
+                    } catch (e) {
+                        console.error("Failed to load last state:", e);
+                        return false;
+                    }
+                }
+                return false;
             }
 
             setupIconToggles() {
@@ -4808,6 +4837,7 @@
                 } catch(e) { this.isPlotting.delete(id); this.showError(e.message, id); this.hideLoading(); return; }
             
                 this.worker.postMessage(params);
+                if (!isFromAnimation) this.debouncedAutoSave();
             }
             updateCoords(text) {
                 // Add a check to make sure this.plotter is initialized
