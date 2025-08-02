@@ -868,26 +868,22 @@
                
                 this.renderAllPlotsDebounced = this.debounce(() => this.plotter.renderAllPlots(), 50);
             
-                // --- START: Preloading and Tutorial Logic ---
                 const loadedFromUrl = this.loadStateFromURL();
-                if (!loadedFromUrl && !localStorage.getItem('plotterProTutorialCompleted')) {
-                    // This block runs ONLY ONCE for a new visitor
+            
+                if (loadedFromUrl) {
+                } else if (!localStorage.getItem('plotterProTutorialCompleted')) {
                     this.switchMode('playground', true);
                     const atomPreset = this.playgroundPresets['Atom'];
                     if (atomPreset) {
                         this.loadPlaygroundPreset(atomPreset);
                     }
-                    // Start the tutorial after a short delay to allow the scene to render
                     setTimeout(() => this.startTutorial(), 500);
-                } else if (!loadedFromUrl) {
-                    // This block runs for returned visitors
-                    this.switchMode('playground', true);
-                    const defaultPreset = this.playgroundPresets['Atom'];
-                    if (defaultPreset) {
-                        this.loadPlaygroundPreset(defaultPreset);
+                } else {
+                    const loadedFromStorage = this.loadLastState();
+                    if (!loadedFromStorage) {
+                        this.switchMode('playground', true);
                     }
                 }
-                // --- END: Preloading and Tutorial Logic ---
             
                 this.renderGlobalAnimationTray();
             }
@@ -924,6 +920,7 @@
                     y: document.getElementById('slice-position-value-y'),
                     z: document.getElementById('slice-position-value-z')
                 };
+                this.debouncedAutoSave = this.debounce(() => this.autoSaveState(), 1000);
                 
             }
 
@@ -970,6 +967,31 @@
                     }
                     this.renderAppearanceSettings();
                 }
+            }
+
+            autoSaveState() {
+                try {
+                    const settings = this.collectSettings();
+                    const jsonString = JSON.stringify(settings);
+                    localStorage.setItem('plotterProLastState', jsonString);
+                } catch (e) {
+                    console.error("Auto-save failed:", e);
+                }
+            }
+            
+            loadLastState() {
+                const savedState = localStorage.getItem('plotterProLastState');
+                if (savedState) {
+                    try {
+                        const settings = JSON.parse(savedState);
+                        this.applySettings(settings);
+                        return true; // Return true on successful load
+                    } catch (e) {
+                        console.error("Failed to load last state:", e);
+                        return false;
+                    }
+                }
+                return false; // Return false if no state was found
             }
 
 
@@ -2996,6 +3018,7 @@
                 } catch(e) { this.isPlotting.delete(id); this.showError(e.message, id); this.hideLoading(); return; }
             
                 this.worker.postMessage(params);
+                if (!isFromAnimation) this.debouncedAutoSave();
             }
             updateCoords(text) {
                 // Add a check to make sure this.plotter is initialized
