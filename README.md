@@ -11,7 +11,7 @@ more.
 
 ##  Features
 
-### 🔢 Multiple Plotting Modes
+###  Multiple Plotting Modes
 
 -   **Playground**: A sandbox to add and manipulate multiple objects in
     the same scene.
@@ -26,7 +26,7 @@ more.
     -   Implicit Surfaces
     -   Vector Fields
 
-### 🎛 Rich Interaction
+### Rich Interaction
 
 -   Full 3D camera controls (rotate, pan, zoom)
 -   Hover inspection to read coordinate data
@@ -47,7 +47,7 @@ more.
 -   Save/load scene state as **.json**
 -   Generate a shareable, compressed **URL** snapshot
 
-### 🧭 Helpful UI
+###  Helpful UI
 
 -   Step-by-step built-in **tutorial**
 -   **Zen Mode** for distraction-free exploration
@@ -151,7 +151,7 @@ No installation required.
 
 ------------------------------------------------------------------------
 
-## 📦 Dependencies
+## Dependencies
 
 Loaded via CDN:
 
