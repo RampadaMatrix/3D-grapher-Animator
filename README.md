@@ -9,7 +9,7 @@ more.
 
 ------------------------------------------------------------------------
 
-## ✨ Features
+##  Features
 
 ### 🔢 Multiple Plotting Modes
 
@@ -26,21 +26,21 @@ more.
     -   Implicit Surfaces
     -   Vector Fields
 
-### 🎛️ Rich Interaction
+### 🎛 Rich Interaction
 
 -   Full 3D camera controls (rotate, pan, zoom)
 -   Hover inspection to read coordinate data
 -   Real-time, LaTeX-style formula editing using **MathQuill**
 -   Built-in calculator for complex math inputs
 
-### 🎨 Customization & Appearance
+###  Customization & Appearance
 
 -   Adjustable plot quality and density
 -   Object opacity controls
 -   Beautiful colormaps: Plasma, Viridis, Jet, and more
 -   Toggle wireframe mode and axis/grid visibility
 
-### 📤 Export & Share
+### Export & Share
 
 -   Export current view as a **PNG**
 -   Export selected objects as **.STL** or **.GLTF**
@@ -54,7 +54,7 @@ more.
 
 ------------------------------------------------------------------------
 
-## 🎬 Animation Features
+## Animation Features
 
 The app includes a powerful animation engine using a global time
 variable `T`.
@@ -64,17 +64,17 @@ individual and global controls.
 
 ### Animation Modes
 
-#### 🌀 V-Mode (Variable Animation)
+####  V-Mode (Variable Animation)
 
 Animate the **core geometry** of an object using the `T` variable. -
 Example: `radius = 5 + sin(T)` for a pulsing sphere
 
-#### 🔁 P-Mode (Transform Animation)
+####  P-Mode (Transform Animation)
 
 Animate **Position, Rotation, and Scale** using math expressions
 involving `T`. - Example: Orbit: `X = 10 * cos(T)`, `Y = 10 * sin(T)`
 
-#### 🚀 Physics Mode
+####  Physics Mode
 
 A simple physics simulation between **waypoints**. - Customize `Mass`,
 `Gravity`, and `Thrust = f(T)` - Example: Rocket:
@@ -118,7 +118,7 @@ visualizations**.
 
 ------------------------------------------------------------------------
 
-## 🚀 How to Use
+##  How to Use
 
 No installation required.
 
