@@ -1,0 +1,4 @@
+# Cross product demo
+u = (1, 0, 0)
+v = (0, 1, 0)
+cross(u, v)

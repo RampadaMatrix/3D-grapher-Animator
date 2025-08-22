@@ -1,0 +1,5 @@
+# Vector norms
+p = (3, 4, 0)
+q = (1, -2, 2)
+norm(p)
+norm(q)

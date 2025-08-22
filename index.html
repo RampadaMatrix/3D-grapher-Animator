@@ -51,8 +51,8 @@
       <button class="mode-tab" data-mode="curve">
        Curve
       </button>
-      <button class="mode-tab" data-mode="implicit">
-       Implicit
+      <button class="mode-tab" data-mode="linear-algebra">
+       Linear Algebra
       </button>
      </div>
     </div>
@@ -162,8 +162,6 @@
          </div>
          <div class="curve-controls hidden space-y-3 relative">
          </div>
-         <div class="implicit-controls hidden space-y-3 relative">
-         </div>
         </div>
        </div>
       </div>
@@ -203,8 +201,6 @@
          </div>
          <div class="curve-controls hidden space-y-3 relative">
          </div>
-         <div class="implicit-controls hidden space-y-3 relative">
-         </div>
         </div>
        </div>
       </div>
@@ -235,9 +231,6 @@
         </div>
         <div class="dropdown-item" data-type="single-vector">
          Single Vector
-        </div>
-        <div class="dropdown-item" data-type="implicit">
-         Implicit Surface
         </div>
        </div>
       </div>
@@ -719,6 +712,11 @@
   <div id="buffering-overlay" class="fixed inset-0 bg-black/70 z-[2000] flex-col items-center justify-center p-4 hidden">
     <div class="spinner w-14 h-14 border-6"></div>
     <p id="buffering-text" class="text-lg text-text-light font-semibold mt-4"></p>
+  </div>
+  <div id="linear-algebra-overlay" class="fixed inset-0 bg-black/80 z-[2001] flex-col items-center justify-center p-4 hidden">
+    <div class="spinner w-16 h-16 border-6"></div>
+    <p class="text-xl text-white font-semibold mt-6">Linear Algebra Engine is loading...</p>
+    <p class="text-sm text-gray-300 mt-2">Please wait while we initialize the Linear Algebra workspace</p>
   </div>
   <div id="tutorial-highlighter">
   </div>

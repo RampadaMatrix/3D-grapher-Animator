@@ -1,0 +1,5 @@
+# Dot product demo
+x = (1, 2, 3)
+y = (4, -1, 2)
+dot(x, y)
+proj(x, y)

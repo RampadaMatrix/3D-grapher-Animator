@@ -1,0 +1,4 @@
+# Least squares: overdetermined system
+A = [[2, 0], [0, 1], [1, 1]]
+b = (1, 0, 1)
+leastsquares(A, b)

@@ -1,0 +1,5 @@
+# Gram–Schmidt from vectors list
+w1 = (1, 1, 1)
+w2 = (1, -1, 0)
+w3 = (1, 1, -2)
+gram_schmidt(w1, w2, w3)

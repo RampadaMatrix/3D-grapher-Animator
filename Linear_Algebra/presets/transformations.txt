@@ -1,0 +1,5 @@
+# Subspace and projections
+u = (1, 0, 0)
+v = (0, 1, 0)
+span(u, v)
+proj((2, 1, 0), u)

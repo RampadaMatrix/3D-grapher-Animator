@@ -1,0 +1,5 @@
+# QR demo + basic matrix diagnostics
+A = [[2, -1, 0], [-1, 2, -1], [0, -1, 2]]
+qr(A)
+rank(A)
+det(A)

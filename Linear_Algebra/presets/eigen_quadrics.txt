@@ -1,0 +1,4 @@
+# Eigen decomposition and quadric visualization (symmetric 3x3)
+A = [[3, 1, 0], [1, 2, 0], [0, 0, 1]]
+eigen(A)
+quadric(A)

@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vector Visualizer Pro</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+      /* Hide number input spinners (Chrome, Safari, Edge, Opera) */
+      input[type=number]::-webkit-outer-spin-button,
+      input[type=number]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      /* Hide number input spinners (Firefox) */
+      input[type=number] {
+        -moz-appearance: textfield;
+        appearance: textfield; /* modern browsers */
+      }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loading">
+        <div class="loader"><div class="loader-inner"></div></div>
+    </div>
+
+    <div class="app-container">
+        <div class="top-bar">
+            <div class="header-left">
+                <div class="app-title"><span class="title-icon">📐</span>Vector Visualizer Pro</div>
+                <span class="version-badge">v3.0</span>
+            </div>
+            <div class="header-controls">
+                <button id="view-toggle" class="btn-icon" title="Toggle 2D/3D View" aria-label="Toggle 2D/3D View">3D</button>
+                <button id="help-open" class="btn-icon" title="Quick Help" aria-label="Open Quick Help">❓</button>
+                <button id="theme-toggle" class="btn-icon" title="Switch to Light" aria-label="Switch theme">☀️</button>
+                <button id="hover-toggle" class="btn-icon" title="Toggle Hover Assistant (H)" aria-label="Toggle Hover Assistant" aria-pressed="true">👆</button>
+                <button id="overlay-toggle" class="btn-icon" title="Toggle Multi-Overlay (L)" aria-label="Toggle Multi-Overlay" aria-pressed="false">🧩</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <aside class="sidebar">
+                <div class="workspace-panel">
+                    <div class="workspace-header">
+                        <div class="workspace-title">
+                            <svg class="workspace-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            <h3>Workspace</h3>
+                        </div>
+                        <div class="create-actions">
+                            <button id="btn-quick-ops" class="create-btn" title="Hold: Quick Ops — click an object, then use keys (e,d,h,o,Ctrl+Z)">i</button>
+                            <button id="btn-new-vector" class="create-btn vector-btn" title="Create Vector">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M7 14l5-5 5 5z"/>
+                                </svg>
+                            </button>
+                            <button id="btn-new-matrix" class="create-btn matrix-btn" title="Create Matrix">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="create-tray" class="create-tray hidden">
+                        <div class="tray-row tray-header">
+                            <div class="tray-title-left">
+                                <span id="create-icon"></span>
+                                <span id="create-title"></span>
+                            </div>
+                            <button id="create-cancel" class="object-btn" title="Cancel">✕</button>
+                        </div>
+                        <div id="tray-content" class="create-tray-content"></div>
+                        <div class="tray-row tray-actions">
+                            <button id="create-save" class="btn btn-primary">Create</button>
+                        </div>
+                    </div>
+                    
+                    <div class="objects-container">
+                        <div class="objects-grid" id="object-list"></div>
+                    </div>
+                </div>
+            </aside>
+
+            <section class="scene-container">
+                <canvas id="scene-canvas"></canvas>
+                
+                <div class="canvas-controls">
+                    <button id="reset-camera" class="canvas-btn" title="Reset Camera" aria-label="Reset camera position">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                    </button>
+                    <button id="reset-zoom" class="canvas-btn" title="Reset Zoom" aria-label="Reset zoom level">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                            <path d="M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z"/>
+                        </svg>
+                    </button>
+                    <button id="clear-overlays" class="canvas-btn" title="Clear Overlays" aria-label="Clear temporary overlays">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div id="coordinate-display" class="coordinate-display hidden">
+                    <span id="coord-text">x: 0.00, y: 0.00, z: 0.00</span>
+                </div>
+                
+                <div id="hover-tooltip" class="hover-tooltip hidden">
+                    <div id="tooltip-content"></div>
+                </div>
+            </section>
+            <aside class="right-panel">
+                
+                <div class="operations-tray">
+                    <div class="command-bar" role="group" aria-label="Command input">
+                        <input type="text" id="command-input" placeholder="Try: rref(A) | solve(A,b) | svd(A) | proj(v,u) | span(v1,v2)" aria-label="Command" />
+                        <button id="command-enter" class="btn btn-primary" aria-label="Run command" title="Run">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M8 5v14l11-7z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="history-palette" class="history-palette" aria-label="Command history palette">
+                        <div class="palette-section" id="saved-section">
+                            <div class="section-title">Saved</div>
+                            <div class="chips" id="saved-commands"></div>
+                        </div>
+                        <div class="palette-section" id="recent-section">
+                            <div class="section-title">Recent</div>
+                            <div class="chips" id="recent-commands"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="output-panel">
+                    <div class="output-header">
+                        <span class="output-title">Output</span>
+                        <div class="output-actions">
+                            <label class="output-toggle" title="Clear output on each run">
+                                <input type="checkbox" id="toggle-clear-on-run" checked />
+                                <span>Clear on run</span>
+                            </label>
+                            <button id="output-clear" class="output-btn" title="Clear output">✕</button>
+                            <button id="output-copy" class="output-btn" title="Copy output">⧉</button>
+                        </div>
+                    </div>
+                    <div id="command-output" class="command-output" aria-live="polite" aria-busy="false"></div>
+                </div>
+                
+                
+                <div id="explorer-panel" class="explorer-panel hidden">
+                    <div class="explorer-header">
+                        <h4 class="tray-title">Span Explorer</h4>
+                        <span id="explorer-info" class="explorer-info"></span>
+                    </div>
+                    <div id="explorer-output" class="explorer-output">
+                        
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        
+        <div class="bottom-dock" role="toolbar" aria-label="Operation toolbar">
+            <div class="dock-left">
+                <div class="op-select-area">
+                    <label for="op-select" class="sr-only">Operation</label>
+                    <select id="op-select" class="select-input">
+                        <option value="gramschmidt">Gram-Schmidt</option>
+                        <option value="rank">Rank</option>
+                        <option value="svd">SVD</option>
+                        <option value="quadric">Quadric Surface</option>
+                        <option value="colspace">Column Space</option>
+                        <option value="nullspace">Null Space</option>
+                        <option value="changebasis">Change of Basis</option>
+                        <option value="det">Determinant</option>
+                        <option value="eigen">Eigen</option>
+                        <option value="proj">Projection</option>
+                        <option value="span">Span</option>
+                        <option value="norm">Norm</option>
+                        <option value="transform">Transform</option>
+                        <option value="leastsquares">Least Squares</option>
+                        <option value="orthcomp">Orthogonal Complement</option>
+                        <option value="reset">Reset Grid</option>
+                    </select>
+                </div>
+                <div class="op-builder-inline" id="op-builder"></div>
+                <button id="op-execute" class="btn btn-success" aria-label="Run operation" title="Run">
+                    
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M8 5v14l11-7z"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="dock-right">
+                <label for="preset-select" class="sr-only">Preset</label>
+                <select id="preset-select" class="select-input">
+                    <option value="">Select…</option>
+                    <option value="basics">Basics</option>
+                    <option value="gram_schmidt_demo">Gram–Schmidt Demo</option>
+                    <option value="qr_lu_bench">QR/LU Bench</option>
+                    <option value="transformations">Transformations</option>
+                    <option value="eigen_quadrics">Eigen & Quadrics</option>
+                    <option value="dot_product_demo">Dot Product Demo</option>
+                    <option value="cross_product_demo">Cross Product Demo</option>
+                    <option value="vector_norms">Vector Norms</option>
+                    <option value="inverse_2x2">Inverse 2×2</option>
+                    <option value="inverse_3x3">Inverse 3×3</option>
+                    <option value="determinant_3x3">Determinant 3×3</option>
+                    <option value="rank_demo">Rank Demo</option>
+                    <option value="rref_demo">RREF Demo</option>
+                    <option value="projection_onto_line">Projection onto Line</option>
+                    <option value="projection_onto_plane">Projection onto Plane</option>
+                    <option value="span_explorer">Span Explorer</option>
+                    <option value="least_squares_line_fit">Least Squares Line Fit</option>
+                    <option value="least_squares_overdetermined">Least Squares Overdetermined</option>
+                    <option value="orthogonal_complement_plane">Orthogonal Complement (Plane)</option>
+                    <option value="orthogonal_complement_line">Orthogonal Complement (Line)</option>
+                    <option value="svd_demo">SVD Demo</option>
+                    <option value="solve_linear_system">Solve Ax=b</option>
+                    <option value="qr_demo_4x4">QR 4×4</option>
+                    <option value="lu_demo">LU Decomposition</option>
+                    <option value="eigen_symmetric_2x2">Eigen Symmetric 2×2</option>
+                    <option value="eigen_nonsymmetric_3x3">Eigen Non-symmetric 3×3</option>
+                    <option value="gram_schmidt_vectors">Gram–Schmidt (Vectors)</option>
+                </select>
+                <button id="preset-run" class="btn" title="Run selected preset">Load</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="help-modal" class="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title">
+        <button class="help-close" aria-label="Close Help">×</button>
+        <div class="help-header">
+            <h2 id="help-title">Complete User Guide & Documentation</h2>
+        </div>
+        <div class="help-content">
+            <div class="help-section">
+                <h3>🚀 Linear Algebra Visualizer - Complete Guide</h3>
+                <p><strong>Interactive 3D/2D environment</strong> for exploring linear algebra concepts with real-time visualization, computation, and step-by-step solutions.</p>
+                <ul class="mini-list">
+                    <li><strong>Command Bar:</strong> Type expressions like <code>A = [[1,2],[3,4]]</code>, <code>det(A)</code>, <code>solve(A,b)</code></li>
+                    <li><strong>Operation Builder:</strong> Visual dropdown interface for constructing operations</li>
+                    <li><strong>30+ Presets:</strong> Pre-configured examples covering all major linear algebra topics</li>
+                    <li><strong>Dual Mode:</strong> Switch between 2D and 3D visualization modes</li>
+                    <li><strong>Progress Tracking:</strong> Real-time progress indicators for long computations</li>
+                </ul>
+            </div>
+
+            <div class="help-section">
+                <h3>🎮 Interface & Controls</h3>
+                <div class="shortcut-grid">
+                    <div class="shortcut-card">
+                        <div class="icon-circle">3D</div>
+                        <div class="card-body">
+                            <div class="card-title">View Toggle</div>
+                            <div class="card-sub">2D ↔ 3D modes</div>
+                            <div class="shortcut-badges"><span class="kbd">Header Button</span></div>
+                            <button class="btn btn-secondary btn-small" data-action="toggle-view">Try it</button>
+                        </div>
+                    </div>
+                    <div class="shortcut-card">
+                        <div class="icon-circle">☀️</div>
+                        <div class="card-body">
+                            <div class="card-title">Theme Toggle</div>
+                            <div class="card-sub">Light/Dark mode</div>
+                            <div class="shortcut-badges"><span class="kbd">Header Button</span></div>
+                            <button class="btn btn-secondary btn-small" data-action="toggle-theme">Switch</button>
+                        </div>
+                    </div>
+                    <div class="shortcut-card">
+                        <div class="icon-circle">👆</div>
+                        <div class="card-body">
+                            <div class="card-title">Hover Assistant</div>
+                            <div class="card-sub">Context tooltips</div>
+                            <div class="shortcut-badges"><span class="kbd">H</span></div>
+                            <button class="btn btn-secondary btn-small" data-action="toggle-hover">Toggle</button>
+                        </div>
+                    </div>
+                    <div class="shortcut-card">
+                        <div class="icon-circle">🧩</div>
+                        <div class="card-body">
+                            <div class="card-title">Multi‑Overlay</div>
+                            <div class="card-sub">Layer visualizations</div>
+                            <div class="shortcut-badges"><span class="kbd">L</span></div>
+                            <button class="btn btn-secondary btn-small" data-action="toggle-overlay">Toggle</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-section">
+                <h3>⌨️ Complete Keyboard Shortcuts</h3>
+                <div class="help-mini">
+                    <div class="mini-title">Global Shortcuts (work anywhere)</div>
+                    <div class="chip-row">
+                        <div class="shortcut-chip"><span class="kbd">H</span><span>Toggle Hover Assistant</span></div>
+                        <div class="shortcut-chip"><span class="kbd">L</span><span>Toggle Multi‑Overlay</span></div>
+                        <div class="shortcut-chip"><span class="kbd">Shift</span>+<span class="kbd">Del</span><span>Clear Overlays</span></div>
+                        <div class="shortcut-chip"><span class="kbd">Ctrl</span>+<span class="kbd">0</span><span>Reset Zoom</span></div>
+                        <div class="shortcut-chip"><span class="kbd">Esc</span><span>Close Dialogs</span></div>
+                    </div>
+                </div>
+
+                <div class="help-mini">
+                    <div class="mini-title">Object Panel Shortcuts (when panel focused)</div>
+                    <div class="chip-row">
+                        <div class="shortcut-chip"><span class="kbd">E</span><span>Edit Object</span></div>
+                        <div class="shortcut-chip"><span class="kbd">D</span><span>Duplicate/Delete</span></div>
+                        <div class="shortcut-chip"><span class="kbd">H</span><span>Hide/Show</span></div>
+                        <div class="shortcut-chip"><span class="kbd">O</span><span>Toggle Origin</span></div>
+                        <div class="shortcut-chip"><span class="kbd">Ctrl</span>+<span class="kbd">Z</span><span>Undo</span></div>
+                    </div>
+                </div>
+
+                <div class="help-mini">
+                    <div class="mini-title">Command Bar & Navigation</div>
+                    <div class="chip-row">
+                        <div class="shortcut-chip"><span class="kbd">Enter</span><span>Execute Command</span></div>
+                        <div class="shortcut-chip"><span class="kbd">↑</span>/<span class="kbd">↓</span><span>Command History</span></div>
+                        <div class="shortcut-chip"><span class="kbd">Ctrl</span>+<span class="kbd">Enter</span><span>Submit Dialog</span></div>
+                    </div>
+                </div>
+
+                <div class="help-mini">
+                    <div class="mini-title">3D Viewport Navigation</div>
+                    <div class="chip-row">
+                        <div class="shortcut-chip"><span>Rotate</span><span class="kbd">Left Mouse Drag</span></div>
+                        <div class="shortcut-chip"><span>Pan</span><span class="kbd">Right Mouse/Shift+Drag</span></div>
+                        <div class="shortcut-chip"><span>Zoom</span><span class="kbd">Mouse Wheel</span></div>
+                        <div class="shortcut-chip"><span>Select/Drag</span><span class="kbd">Click & Drag Objects</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-section">
+                <h3>📊 Data Input & Variable System</h3>
+                <div class="help-mini">
+                    <div class="mini-title">Creating Mathematical Objects</div>
+                    <ul class="mini-list">
+                        <li><strong>Vectors:</strong> <code>v = [1, 2, 3]</code> or <code>v = (1, 2, 3)</code></li>
+                        <li><strong>Matrices:</strong> <code>A = [[1,2],[3,4]]</code> or <code>A = [[1,2,3],[4,5,6],[7,8,9]]</code></li>
+                        <li><strong>Planes:</strong> <code>n = [1,0,1]; n == 2</code> (normal vector = offset)</li>
+                        <li><strong>Interactive Creation:</strong> Use "+" buttons in workspace panel</li>
+                        <li><strong>Scalars:</strong> <code>k = 5</code> or direct numeric values</li>
+                    </ul>
+                </div>
+
+                <div class="help-mini">
+                    <div class="mini-title">Variable System & References</div>
+                    <ul class="mini-list">
+                        <li><strong>Assignment:</strong> <code>myVector = [1, 2, 3]</code>, <code>myMatrix = [[1,2],[3,4]]</code></li>
+                        <li><strong>Reference:</strong> Use names in expressions: <code>det(A)</code>, <code>solve(A,b)</code></li>
+                        <li><strong>Indexing:</strong> <code>v[1]</code> (1-based), <code>A[2,1]</code> for matrices</li>
+                        <li><strong>Components:</strong> <code>v.x</code>, <code>v.y</code>, <code>v.z</code> for vector components</li>
+                        <li><strong>Auto-naming:</strong> System generates names like P1, P2 for planes</li>
+                    </ul>
+                </div>
+            </div>
+
+                <div class="help-mini">
+                    <div class="mini-title">Left Panel Quick Ops (when hovered/focused)</div>
+                    <div class="chip-row">
+                        <div class="shortcut-chip"><span class="kbd">E</span><span>Edit</span></div>
+                        <div class="shortcut-chip"><span class="kbd">D</span><span>Duplicate</span></div>
+                        <div class="shortcut-chip"><span class="kbd">H</span><span>Hide/Show</span></div>
+                        <div class="shortcut-chip"><span class="kbd">O</span><span>Origin</span></div>
+                        <div class="shortcut-chip"><span class="kbd">Ctrl</span> + <span class="kbd">Z</span><span>Undo</span></div>
+                    </div>
+                    <div class="mini-note">Shortcuts arm only when your cursor is over the left list or it has focus.</div>
+                </div>
+
+                <div class="help-mini">
+                    <div class="mini-title">Mouse & Viewport</div>
+                    <div class="chip-row">
+                        <div class="shortcut-chip"><span>Rotate</span><span class="kbd">LMB drag</span></div>
+                        <div class="shortcut-chip"><span>Pan</span><span class="kbd">RMB/Shift+Drag</span></div>
+                        <div class="shortcut-chip"><span>Zoom</span><span class="kbd">Wheel</span></div>
+                    </div>
+                </div>
+
+                <div class="help-mini">
+                    <div class="mini-title">Command Bar</div>
+                    <div class="chip-row">
+                        <button class="cmd-chip" data-command="svd(A)"><span class="chip-text">svd(A)</span></button>
+                        <button class="cmd-chip" data-command="proj(v,u)"><span class="chip-text">proj(v,u)</span></button>
+                        <button class="cmd-chip" data-command="span(v1,v2)"><span class="chip-text">span(v1,v2)</span></button>
+                        <button class="cmd-chip" data-command="leastsquares(A,b)"><span class="chip-text">leastsquares(A,b)</span></button>
+                        <button class="cmd-chip" data-command="rref(A)"><span class="chip-text">rref(A)</span></button>
+                        <button class="cmd-chip" data-command="solve(A,b)"><span class="chip-text">solve(A,b)</span></button>
+                    </div>
+                    <div class="mini-note">Click any chip to run in the command bar.</div>
+                </div>
+
+                <div class="help-mini">
+
+                        <div class="help-mini">
+                            <div class="mini-title">Presets</div>
+                            <div class="chip-row">
+                                <button class="btn btn-secondary btn-small" data-preset="basics">Basics</button>
+                                <button class="btn btn-secondary btn-small" data-preset="gram_schmidt_demo">Gram–Schmidt</button>
+                                <button class="btn btn-secondary btn-small" data-preset="qr_lu_bench">QR/LU</button>
+                                <button class="btn btn-secondary btn-small" data-preset="rref_demo">RREF</button>
+                                <button class="btn btn-secondary btn-small" data-preset="solve_linear_system">Solve Ax=b</button>
+                                <button class="btn btn-secondary btn-small" data-preset="transformations">Transforms</button>
+                                <button class="btn btn-secondary btn-small" data-preset="eigen_quadrics">Eigen</button>
+                            </div>
+                        </div>
+                    <ul class="mini-list">
+                        <li>2D transforms embed in XZ; Y stays fixed.</li>
+                        <li>Span: 1→line, 2 non‑collinear→plane, rank 3→R³.</li>
+                        <li>Least squares & projections handle rectangular matrices.</li>
+                    </ul>
+                </div>
+                <div class="help-mini">
+                    <div class="mini-title">All Shortcuts</div>
+                    <div class="chip-row">
+                        <div class="shortcut-chip"><span>Hover Assistant</span><span class="kbd">H</span></div>
+                        <div class="shortcut-chip"><span>Multi‑Overlay</span><span class="kbd">L</span></div>
+                        <div class="shortcut-chip"><span>Clear Overlays</span><span class="kbd">Shift</span>+<span class="kbd">Delete</span>/<span class="kbd">Backspace</span></div>
+                        <div class="shortcut-chip"><span>Reset Zoom</span><span class="kbd">Ctrl</span>+<span class="kbd">0</span></div>
+                    </div>
+                    <div class="mini-note">Global: work anywhere unless a text field is active.</div>
+                    <div class="chip-row" style="margin-top:8px">
+                        <div class="shortcut-chip"><span>Panel Edit</span><span class="kbd">E</span></div>
+                        <div class="shortcut-chip"><span>Panel Duplicate/Delete</span><span class="kbd">D</span></div>
+                        <div class="shortcut-chip"><span>Panel Hide/Show</span><span class="kbd">H</span></div>
+                        <div class="shortcut-chip"><span>Run Command</span><span class="kbd">Enter</span></div>
+                        <div class="shortcut-chip"><span>History Prev/Next</span><span class="kbd">↑</span>/<span class="kbd">↓</span></div>
+                    </div>
+                    <div class="mini-note">Command bar: focused input captures Enter and history keys.</div>
+                    <div class="chip-row" style="margin-top:8px">
+                        <div class="shortcut-chip"><span>Create Dialog Submit</span><span class="kbd">Ctrl</span>+<span class="kbd">Enter</span></div>
+                        <div class="shortcut-chip"><span>Close Popover/Help/Editors</span><span class="kbd">Esc</span></div>
+                    </div>
+                </div>
+                <div class="help-mini">
+                    <div class="mini-title">All Commands</div>
+                    <div class="chip-row">
+                        <button class="cmd-chip" data-command="inv(A)" title="Matrix inverse (square, non‑singular)"><span class="chip-text">inv(A)</span></button>
+                        <button class="cmd-chip" data-command="det(A)" title="Determinant (square matrix)"><span class="chip-text">det(A)</span></button>
+                        <button class="cmd-chip" data-command="rank(A)" title="Matrix rank"><span class="chip-text">rank(A)</span></button>
+                        <button class="cmd-chip" data-command="rref(A)" title="Reduced Row Echelon Form"><span class="chip-text">rref(A)</span></button>
+                        <button class="cmd-chip" data-command="qr(A)" title="QR decomposition"><span class="chip-text">qr(A)</span></button>
+                        <button class="cmd-chip" data-command="lu(A)" title="LU decomposition"><span class="chip-text">lu(A)</span></button>
+                        <button class="cmd-chip" data-command="svd(A)" title="Singular Value Decomposition"><span class="chip-text">svd(A)</span></button>
+                        <button class="cmd-chip" data-command="eigen(A)" title="Eigenvalues/vectors (square)"><span class="chip-text">eigen(A)</span></button>
+                    </div>
+                    <div class="chip-row">
+                        <button class="cmd-chip" data-command="dot(u,v)" title="Dot product of two vectors"><span class="chip-text">dot(u,v)</span></button>
+                        <button class="cmd-chip" data-command="cross(u,v)" title="Cross product (3D vectors)"><span class="chip-text">cross(u,v)</span></button>
+                        <button class="cmd-chip" data-command="norm(v)" title="Vector length"><span class="chip-text">norm(v)</span></button>
+                        <button class="cmd-chip" data-command="proj(v,u)" title="Projection of v onto u or a subspace A"><span class="chip-text">proj(v,u)</span></button>
+                        <button class="cmd-chip" data-command="span(v1,v2)" title="Span of vectors (line/plane/R³)"><span class="chip-text">span(v1,v2)</span></button>
+                        <button class="cmd-chip" data-command="leastsquares(A,b)" title="Least squares solution of Ax≈b"><span class="chip-text">leastsquares(A,b)</span></button>
+                        <button class="cmd-chip" data-command="solve(A,b)" title="Solve linear system (exact or least squares)"><span class="chip-text">solve(A,b)</span></button>
+                    </div>
+                    <div class="chip-row">
+                        <button class="cmd-chip" data-command="orthcomp(v)" title="Orthogonal complement (line or plane)"><span class="chip-text">orthcomp(v)</span></button>
+                        <button class="cmd-chip" data-command="orthcomp(A)" title="Orthogonal complement of a subspace from columns of A"><span class="chip-text">orthcomp(A)</span></button>
+                        <button class="cmd-chip" data-command="gramschmidt(A)" title="Orthonormalize columns (or list of vectors)"><span class="chip-text">gramschmidt(A)</span></button>
+                        <button class="cmd-chip" data-command="gram_schmidt(v1,v2)" title="Gram–Schmidt on vectors"><span class="chip-text">gram_schmidt(v1,v2)</span></button>
+                        <button class="cmd-chip" data-command="quadric(A)" title="Visualize xᵀAx=1 (symmetric A)"><span class="chip-text">quadric(A)</span></button>
+                        <button class="cmd-chip" data-command="colspace(A)" title="Column space of A"><span class="chip-text">colspace(A)</span></button>
+                        <button class="cmd-chip" data-command="nullspace(A)" title="Null space basis of A"><span class="chip-text">nullspace(A)</span></button>
+                    </div>
+                    <div class="chip-row">
+                        <button class="cmd-chip" data-command="basis(on)" title="Toggle basis vectors on"><span class="chip-text">basis(on)</span></button>
+                        <button class="cmd-chip" data-command="basis(off)" title="Toggle basis vectors off"><span class="chip-text">basis(off)</span></button>
+                        <button class="cmd-chip" data-command="transform(A)" title="Apply linear transform A to scene vectors"><span class="chip-text">transform(A)</span></button>
+                        <button class="cmd-chip" data-command="reset()" title="Reset grid / identity transform"><span class="chip-text">reset()</span></button>
+                    </div>
+                    <div class="mini-note">Click any chip to run. Commands are case‑insensitive.</div>
+                </div>
+            </div>
+            <div class="help-section">
+                <h3>Run a Preset</h3>
+                <div class="command-list">
+                    <button class="btn btn-secondary" data-preset="basics">Basics</button>
+                    <button class="btn btn-secondary" data-preset="gram_schmidt_demo">Gram–Schmidt Demo</button>
+                    <button class="btn btn-secondary" data-preset="qr_lu_bench">QR/LU Bench</button>
+                    <button class="btn btn-secondary" data-preset="transformations">Transformations</button>
+                    <button class="btn btn-secondary" data-preset="eigen_quadrics">Eigen & Quadrics</button>
+                </div>
+            </div>
+            <div class="help-section">
+                <h3>Command Examples</h3>
+                <div class="command-list">
+                    <div class="command-item">
+                        <div class="command-syntax">svd(A)</div>
+                        <div class="command-desc">Singular Value Decomposition of matrix A</div>
+                        <button class="btn btn-sm" data-command="svd(A)">Run</button>
+                    </div>
+                    <div class="command-item">
+                        <div class="command-syntax">proj(v,u)</div>
+                        <div class="command-desc">Project vector v onto u</div>
+                        <button class="btn btn-sm" data-command="proj(v,u)">Run</button>
+                    </div>
+                    <div class="command-item">
+                        <div class="command-syntax">span(v1,v2)</div>
+                        <div class="command-desc">Visualize the span of two vectors</div>
+                        <button class="btn btn-sm" data-command="span(v1,v2)">Run</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FXAAShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/SSAOPass.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/SMAAShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/SMAAPass.js"></script>
+
+    <script>
+        // Queue, serialization, and helper to request math rendering before MathJax loads
+        window.mathJaxQueue = [];
+        // Internal serialization state for MathJax typesetting
+        window._mathJaxSerial = { chain: Promise.resolve(), token: 0 };
+        // Bump the render token to invalidate in-flight scheduled renders and reset the chain to avoid deadlocks
+        window.bumpRenderToken = function(resetChain = true) {
+            const t = ++window._mathJaxSerial.token;
+            if (resetChain) {
+                // Important: break any stuck chain so new renders don't wait behind it
+                window._mathJaxSerial.chain = Promise.resolve();
+            }
+            return t;
+        };
+        // Render function that serializes typesetting and supports optional cancellation via token
+        window.renderMath = function(elementOrElements, token = null) {
+            const toArray = (x) => Array.isArray(x) ? x : [x];
+            const elems = toArray(elementOrElements);
+            const execTypeset = () => {
+                if (window.MathJax && window.MathJax.typesetPromise) {
+                    return MathJax.typesetPromise(elems);
+                } else {
+                    // Defer until MathJax is ready
+                    window.mathJaxQueue.push(...elems);
+                    return Promise.resolve();
+                }
+            };
+            const myToken = token ?? window._mathJaxSerial.token;
+            // Chain onto the serialized promise to avoid overlapping typesets
+            window._mathJaxSerial.chain = window._mathJaxSerial.chain.then(() => {
+                // If a token was supplied and it became stale, skip actual typeset
+                if (token != null && myToken !== window._mathJaxSerial.token) return;
+                // Bound the wait so the global chain never deadlocks on a slow MathJax typeset
+                return Promise.race([
+                    execTypeset(),
+                    new Promise(resolve => setTimeout(resolve, 1200))
+                ]).catch(err => console.error('MathJax error:', err));
+            });
+            return window._mathJaxSerial.chain;
+        };
+        // Configure MathJax BEFORE loading the script
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            startup: {
+                ready: () => {
+                    console.log('MathJax is ready.');
+                    // Ensure default startup completes
+                    MathJax.startup.defaultReady();
+                    // Flush queued elements through the serialized chain
+                    const queue = window.mathJaxQueue.slice();
+                    window.mathJaxQueue = [];
+                    if (queue.length) {
+                        window._mathJaxSerial.chain = window._mathJaxSerial.chain
+                            .then(() => MathJax.typesetPromise(queue))
+                            .catch(err => console.error('MathJax error:', err));
+                    }
+                    window.MathJaxReady = true;
+                }
+            }
+        };
+    </script>
+    <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <script src="linearAlgebraEnhanced.js"></script>
+    <script src="computationManager.js"></script>
+    <script src="commandParser.js"></script>
+    <script src="app_clean.js"></script>
+
+</div>
+</body>
+</html>

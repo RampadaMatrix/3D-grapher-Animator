@@ -1,0 +1,5 @@
+# Orthogonal complement of plane spanned by a,b
+a = (1, 0, 1)
+b = (0, 1, 1)
+P = [a, b]
+orthcomp(P)

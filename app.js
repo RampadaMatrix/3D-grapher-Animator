@@ -258,9 +258,6 @@
                     case 'vector':
                         if (obj.lastData) newMesh = this.createVectorMesh(obj);
                         break;
-                    case 'implicit':
-                        if (obj.lastData) newMesh = this.createImplicitMesh(obj, isWireframe);
-                        break;
                     case 'single-vector':
                         newMesh = this.createSingleVectorMesh(obj);
                         break;
@@ -535,68 +532,6 @@
                }
            }
         
-            createImplicitMesh(obj, isWireframe) {
-                const { vertices, faces } = obj.lastData;
-                if (!vertices || vertices.length === 0 || !faces || faces.length === 0) {
-                    return null;
-                }
-                const geometry = new THREE.BufferGeometry();
-                const positions = new Float32Array(vertices.length * 3);
-                const values = new Float32Array(vertices.length);
-                let calculatedMinZ = Infinity;
-                let calculatedMaxZ = -Infinity;
-                for (let i = 0; i < vertices.length; i++) {
-                    const v = vertices[i];
-                    if (!v || !isFinite(v.x) || !isFinite(v.y) || !isFinite(v.z)) continue;
-                    positions[i * 3] = v.x;
-                    positions[i * 3 + 1] = v.y;
-                    positions[i * 3 + 2] = v.z;
-                    values[i] = v.z;
-                    if (v.z < calculatedMinZ) calculatedMinZ = v.z;
-                    if (v.z > calculatedMaxZ) calculatedMaxZ = v.z;
-                }
-                const indices = new Uint32Array(faces);
-                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                geometry.setAttribute('colorValue', new THREE.BufferAttribute(values, 1));
-                geometry.setIndex(new THREE.BufferAttribute(indices, 1));
-                geometry.computeVertexNormals();
-                const texture = this.createColormapTexture(obj.colormap);
-                const material = new THREE.ShaderMaterial({
-                    uniforms: {
-                        colormap: { value: texture },
-                        zMin: { value: calculatedMinZ },
-                        zMax: { value: calculatedMaxZ },
-                        opacity: { value: obj.config?.opacity ?? 1.0 }
-                    },
-                    vertexShader: `
-                        attribute float colorValue;
-                        varying float vValue;
-                        void main() {
-                            vValue = colorValue;
-                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                        }
-                    `,
-                    fragmentShader: `
-                        uniform sampler2D colormap;
-                        uniform float zMin;
-                        uniform float zMax;
-                        uniform float opacity;
-                        varying float vValue;
-                        void main() {
-                            if (isnan(vValue)) discard;
-                            float normalizedValue = (vValue - zMin) / (zMax - zMin);
-                            vec4 color = texture2D(colormap, vec2(normalizedValue, 0.5));
-                            color.a *= opacity;
-                            gl_FragColor = color;
-                        }
-                    `,
-                    wireframe: isWireframe,
-                    side: THREE.DoubleSide,
-                    transparent: true,
-                    clipping: true
-                });
-                return new THREE.Mesh(geometry, material);
-            }
             
             
             createCurveMesh(obj) {
@@ -870,21 +805,22 @@
             
                 // --- START: Preloading and Tutorial Logic ---
                 const loadedFromUrl = this.loadStateFromURL();
-                if (!loadedFromUrl && !localStorage.getItem('plotterProTutorialCompleted')) {
-                    // This block runs ONLY ONCE for a new visitor
+                const hasLoadedInitialPreset = localStorage.getItem('initialPresetLoaded') === 'true';
+                const tutorialCompleted = localStorage.getItem('plotterProTutorialCompleted') === 'true';
+                if (!loadedFromUrl) {
+                    // Always land in playground on direct loads without URL state
                     this.switchMode('playground', true);
-                    const atomPreset = this.playgroundPresets['Atom'];
-                    if (atomPreset) {
-                        this.loadPlaygroundPreset(atomPreset);
+                    // Load the Atom preset only once per browser
+                    if (!hasLoadedInitialPreset) {
+                        const atomPreset = this.playgroundPresets['Atom'];
+                        if (atomPreset) {
+                            this.loadPlaygroundPreset(atomPreset);
+                        }
+                        localStorage.setItem('initialPresetLoaded', 'true');
                     }
-                    // Start the tutorial after a short delay to allow the scene to render
-                    setTimeout(() => this.startTutorial(), 500);
-                } else if (!loadedFromUrl) {
-                    // This block runs for returned visitors
-                    this.switchMode('playground', true);
-                    const defaultPreset = this.playgroundPresets['Atom'];
-                    if (defaultPreset) {
-                        this.loadPlaygroundPreset(defaultPreset);
+                    // Start tutorial if not completed yet, independent of preset
+                    if (!tutorialCompleted) {
+                        setTimeout(() => this.startTutorial(), 500);
                     }
                 }
                 // --- END: Preloading and Tutorial Logic ---
@@ -1513,16 +1449,6 @@
                         { name: 'Wave Field', fx: 'sin(z - T)', fy: 'cos(x - T)', fz: 'sin(y - T)' },
                         { name: 'Tornado', fx: '-y*exp(-0.1*(x^2+y^2))', fy: 'x*exp(-0.1*(x^2+y^2))', fz: '2 - 0.1*(x^2+y^2)' },
                     ],
-                    implicit: [
-                        { name: 'Sphere', equation: 'x^2+y^2+z^2-16' },
-                        { name: 'Animated Torus', equation: '(x^2+y^2+z^2+12 - 4*sin(T))^2 - 64*(x^2+y^2)', quality: 70 },
-                        { name: 'Gyroid', equation: '\\cos(x)*\\sin(y)+\\cos(y)*\\sin(z)+\\cos(z)*\\sin(x)', quality: 60 },
-                        { name: 'Heart', equation: '(x^2 + (9/4)*y^2 + z^2 - 1)^3 - x^2*z^3 - (9/80)*y^2*z^3', quality: 80 },
-                        { name: 'Metaballs', equation: '1/((x-2*sin(T))^2 + y^2 + z^2) + 1/((x+2*sin(T))^2 + y^2 + z^2) + 0.5/((x)^2 + (y-2*cos(T))^2 + z^2) - 1.2', quality: 70 },
-                        { name: 'Barth Sextic', equation: '4*((1.618^2)*x^2-y^2)*((1.618^2)*y^2-z^2)*((1.618^2)*z^2-x^2) - (1+2*1.618)*(x^2+y^2+z^2-1.5)^2', quality: 90 },
-                        { name: 'Quantum Bubble', equation: 'x^2 + y^2 + z^2 - (4 + 2*sin(5*atan2(y,x))*sin(5*atan2(z,sqrt(x^2+y^2))))', quality: 80 },
-                        { name: 'Stellar Formation', equation: 'x^2 + y^2 + z^2 - (9 + 3*sin(8*atan2(y,x))*cos(8*atan2(z,sqrt(x^2+y^2))))', quality: 90 },
-                    ],
                     'single-vector': [
                         { name: 'Basic', ox: 0, oy: 0, oz: 0, vx: 5, vy: 5, vz: 5, color: '#ffaa00' },
                         { name: 'Offset', ox: -2, oy: -2, oz: 0, vx: 4, vy: 4, vz: 4, color: '#00aaff' },
@@ -1544,7 +1470,7 @@
                         { type: 'parametric', name: 'Neutron 4', config: { xExpr: '0.3*cos(u)*sin(v)', yExpr: '0.3*sin(u)*sin(v)', zExpr: '0.3*cos(v)', uMax: 6.28, vMax: 3.14, quality: 20 }, colormap: 'Greys', animation: { modes: { p: true }, T: { max: 6.28 }, speed: 1.2, pos: { x: '0.1*cos(T*2.2)', y: '-0.8+0.1*sin(T*2.2)', z: '0' } } },
                         // Nucleus Shell (Transparent)
                         { type: 'parametric', name: 'Nucleus Shell', config: { xExpr: '1.2*cos(u)*sin(v)', yExpr: '1.2*sin(u)*sin(v)', zExpr: '1.2*cos(v)', uMax: 6.28, vMax: 3.14, quality: 40, opacity: 0.2 }, colormap: 'Greys' },
-
+                
                         // --- ELECTRONS & ORBITS ---
                         // Electron 1 (Inner Orbit)
                         { type: 'curve', name: 'Electron Path 1', colormap: 'Plasma', config: { xExpr: '8*cos(t)', yExpr: '8*sin(t)*cos(0.5)', zExpr: '8*sin(t)*sin(0.5)', tMax: 6.28, quality: 400 } },
@@ -1553,7 +1479,7 @@
                         // Electron 2 (Perpendicular Orbit)
                         { type: 'curve', name: 'Electron Path 2', colormap: 'Viridis', config: { xExpr: '10*cos(t)', yExpr: '2*sin(t)', zExpr: '10*sin(t)', tMax: 6.28, quality: 400 } },
                         { type: 'parametric', name: 'Electron 2', config: { xExpr: '0.2*cos(u)*sin(v)', yExpr: '0.2*sin(u)*sin(v)', zExpr: '0.2*cos(v)', uMax: 6.28, vMax: 3.14, quality: 10 }, colormap: 'Blues', animation: { modes: { p: true }, T: { max: 6.28 }, speed: 1.0, pos: { x: '10*cos(T)', y: '2*sin(T)', z: '10*sin(T)' } } },
-
+                
                         // Electron 3 (Outer Wavy Orbit)
                         { type: 'curve', name: 'Electron Path 3', colormap: 'Jet', config: { xExpr: '12*cos(t)', yExpr: '12*sin(t)', zExpr: '1.5*cos(t*3)', tMax: 6.28, quality: 400 } },
                         { type: 'parametric', name: 'Electron 3', config: { xExpr: '0.2*cos(u)*sin(v)', yExpr: '0.2*sin(u)*sin(v)', zExpr: '0.2*cos(v)', uMax: 6.28, vMax: 3.14, quality: 10 }, colormap: 'Blues', animation: { modes: { p: true }, T: { max: 6.28 }, speed: 0.8, pos: { x: '12*cos(T)', y: '12*sin(T)', z: '1.5*cos(T*3)' } } }
@@ -1568,19 +1494,7 @@
                         { type: 'surface', name: 'Quantum Field', config: { equation: '3*e^(-0.03*(x^2+y^2))*cos(sqrt(x^2+y^2)*0.8 - T*2) + 2*sin(x*0.3)*cos(y*0.3)*e^(-0.01*(x^2+y^2))', xMin: -15, xMax: 15, yMin: -15, yMax: 15, quality: 100 }, colormap: 'Jet', animation: { modes: { v: true }, T: { max: 6.28 }, speed: 1.2 } },
                         { type: 'curve', name: 'Particle Stream 1', config: { xExpr: '15*cos(t*0.1 + T*5)', yExpr: '15*sin(t*0.1 + T*5)', zExpr: 't*0.05', tMin: -100, tMax: 100, quality: 400 }, colormap: 'Oranges', animation: { modes: { v: true }, T: { max: 6.28 }, speed: 3 } },
                         { type: 'curve', name: 'Particle Stream 2', config: { xExpr: '15*cos(t*0.1 + T*5 + 3.14)', yExpr: '15*sin(t*0.1 + T*5 + 3.14)', zExpr: 't*0.05', tMin: -100, tMax: 100, quality: 400 }, colormap: 'Greens', animation: { modes: { v: true }, T: { max: 6.28 }, speed: 2.5 } }
-                    ],
-                    'Quantum Entanglement': [
-                        { type: 'parametric', name: 'Core A', config: { xExpr: '(1.5 + 0.5*sin(T*3))*cos(u)*sin(v)', yExpr: '(1.5 + 0.5*sin(T*3))*sin(u)*sin(v)', zExpr: '(1.5 + 0.5*sin(T*3))*cos(v)', uMax: 6.28, vMax: 3.14, quality: 50 }, colormap: 'Hot', animation: { modes: { v: true, p: true }, T: { min: 0, max: 6.28 }, speed: 0.5, pos: { x: '5*cos(T*0.5)', y: '5*sin(T*0.5)', z: '2*sin(T)' } } },
-                        { type: 'parametric', name: 'Core B', config: { xExpr: '(1.5 + 0.5*sin(T*3))*cos(u)*sin(v)', yExpr: '(1.5 + 0.5*sin(T*3))*sin(u)*sin(v)', zExpr: '(1.5 + 0.5*sin(T*3))*cos(v)', uMax: 6.28, vMax: 3.14, quality: 50 }, colormap: 'Plasma', animation: { modes: { v: true, p: true }, T: { min: 0, max: 6.28 }, speed: 0.5, pos: { x: '-5*cos(T*0.5)', y: '-5*sin(T*0.5)', z: '-2*sin(T)' } } },
-                        { type: 'parametric', name: 'Entanglement Ribbon', config: { xExpr: 'u', yExpr: 'v*sin(u*0.4 + T*2)', zExpr: 'v*cos(u*0.4 + T*2)', uMin: -5, uMax: 5, vMin: -0.5, vMax: 0.5, quality: 100 }, colormap: 'Viridis', animation: { modes: { v: true, p: true }, T: { min: 0, max: 6.28 }, speed: 0.5, rot: { y: '-(T*0.5*57.3)', z: 'T*0.1*57.3' }, scale: { y: '1.5 + cos(T)', z: '1.5 + cos(T)' } } },
-                        { type: 'implicit', name: 'Quantum Field', config: { equation: 'cos(x/2)*sin(y/2) + cos(y/2)*sin(z/2) + cos(z/2)*sin(x/2) - sin(T)*0.2', xMin: -10, xMax: 10, yMin: -10, yMax: 10, zMin: -10, zMax: 10, quality: 40, opacity: 0.3 }, colormap: 'Greys', animation: { modes: { v: true }, T: { min: 0, max: 6.28 }, speed: 0.5 } }
-                    ],
-                    'Cosmic Dance': [
-                        { type: 'implicit', name: 'Cosmic Core', config: { equation: 'x^2 + y^2 + z^2 - (4 + 2*sin(5*atan2(y,x) + T*2)*cos(5*atan2(z,sqrt(x^2+y^2)) + T))', quality: 90 }, colormap: 'Hot', animation: { modes: { v: true }, T: { max: 6.28 }, speed: 1 } },
-                        { type: 'curve', name: 'Orbital Path 1', config: { xExpr: '8*cos(t)*cos(t*0.1 + T)', yExpr: '8*sin(t)*cos(t*0.1 + T)', zExpr: '5*sin(t*0.1 + T)', tMax: 62.8, quality: 1000 }, colormap: 'Plasma', animation: { modes: { v: true }, T: { max: 6.28 }, speed: 1.5 } },
-                        { type: 'curve', name: 'Orbital Path 2', config: { xExpr: '12*cos(t*0.7)*sin(t*0.05 + T*0.8)', yExpr: '12*sin(t*0.7)*sin(t*0.05 + T*0.8)', zExpr: '8*cos(t*0.05 + T*0.8)', tMax: 125.6, quality: 1200 }, colormap: 'Viridis', animation: { modes: { v: true }, T: { max: 6.28 }, speed: 0.8 } },
-                        { type: 'surface', name: 'Wave Field', config: { equation: '4*sin(sqrt((x-5*cos(T))^2 + (y-5*sin(T))^2)*0.5 - T*3) + 4*sin(sqrt((x+5*cos(T))^2 + (y+5*sin(T))^2)*0.5 + T*2)', xMin: -20, xMax: 20, yMin: -20, yMax: 20, quality: 120 }, colormap: 'Cool', animation: { modes: { v: true }, T: { max: 6.28 }, speed: 1.2 } }
-                    ],
+                    ]
                 }
             }
             
@@ -1797,6 +1711,12 @@
             }
 
             switchMode(mode, initial = false) {
+                // Handle Linear Algebra mode navigation
+                if (mode === 'linear-algebra') {
+                    this.navigateToLinearAlgebra();
+                    return;
+                }
+
                 this.stopAllAnimations();
 
                 this.syncUItoState();
@@ -1902,7 +1822,6 @@
                 switch(type) {
                     case 'surface': return { ...baseConfig, equation: 'x^2-y^2', xMin: -5, xMax: 5, yMin: -5, yMax: 5, ...preset };
                     case 'parametric': return { ...baseConfig, quality: 100, xExpr: 'u', yExpr: 'v', zExpr: 'u*v', uMin: 0, uMax: 6.28, vMin: 0, vMax: 6.28, ...preset };
-                    case 'implicit': return { ...baseConfig, quality: 40, equation: 'x^2+y^2+z^2-16', xMin: -5, xMax: 5, yMin: -5, yMax: 5, zMin: -5, zMax: 5, ...preset };
                     case 'curve': return { ...baseConfig, quality: 500, xExpr: '\\cos(t)', yExpr: '\\sin(t)', zExpr: 't', tMin: 0, tMax: 10, ...preset };
                     case 'vector': return { ...baseConfig, density: 10, scale: 1.0, fx: 'x', fy: 'y', fz: '0', xMin: -3, xMax: 3, yMin: -3, yMax: 3, zMin: -3, zMax: 3, ...preset };
                     case 'single-vector': return { ox: 0, oy: 0, oz: 0, vx: 1, vy: 1, vz: 1, color: '#ffffff', ...preset };
@@ -2088,9 +2007,7 @@
                     case 'parametric':
                         fieldsHTML = `${createMathInputGroup('x(u,v,T)', `px-${obj.id}`, c.xExpr)} ${createMathInputGroup('y(u,v,T)', `py-${obj.id}`, c.yExpr)} ${createMathInputGroup('z(u,v,T)', `pz-${obj.id}`, c.zExpr)} ${createRangeInputs(['u', 'v'])}`;
                         break;
-                    case 'implicit': 
-                        fieldsHTML = `${createMathInputGroup('f(x, y, z, T) = 0', `imp-${obj.id}`, c.equation)}`;
-                        break;
+
                     case 'curve':
                         fieldsHTML = `${createMathInputGroup('x(t,T)', `cx-${obj.id}`, c.xExpr)} ${createMathInputGroup('y(t,T)', `cy-${obj.id}`, c.yExpr)} ${createMathInputGroup('z(t,T)', `cz-${obj.id}`, c.zExpr)} ${createRangeInputs(['t'])}`;
                         break;
@@ -2427,7 +2344,7 @@
                     case 'curve': return {...base, T: { min: 0, max: 10, current: 0 }, targetVars: { t: true }, varRanges: { t: { min: 0, max: 10 } } };
                     case 'vector': return {...base, T: { min: -3, max: 3, current: -3 }, targetVars: { x: false, y: false, z: false }, varRanges: { x: { min: -3, max: 3 }, y: { min: -3, max: 3 }, z: { min: -3, max: 3 } } };
                     
-                    case 'implicit': return {...base, T: { min: -5, max: 5, current: -5 }, targetVars: { x: false, y: false, z: false }, varRanges: { x: { min: -5, max: 5 }, y: { min: -5, max: 5 }, z: { min: -5, max: 5 } } };
+
                     default: return null;
                 }
             }
@@ -2991,7 +2908,7 @@
                         case 'vector': params.fx = this.getLatestMathExpr(id, 'vx'); params.fy = this.getLatestMathExpr(id, 'vy'); params.fz = this.getLatestMathExpr(id, 'vz'); break;
                         case 'parametric': params.xExpr = this.getLatestMathExpr(id, 'px'); params.yExpr = this.getLatestMathExpr(id, 'py'); params.zExpr = this.getLatestMathExpr(id, 'pz'); break;
                         case 'curve': params.xExpr = this.getLatestMathExpr(id, 'cx'); params.yExpr = this.getLatestMathExpr(id, 'cy'); params.zExpr = this.getLatestMathExpr(id, 'cz'); break;
-                        case 'implicit': params.equation = this.getLatestMathExpr(id, 'imp'); break;
+
                     }
                 } catch(e) { this.isPlotting.delete(id); this.showError(e.message, id); this.hideLoading(); return; }
             
@@ -3043,7 +2960,7 @@
                             case 'parametric': obj.config.xExpr = this.mathFields[`px-${obj.id}`]?.latex(); obj.config.yExpr = this.mathFields[`py-${obj.id}`]?.latex(); obj.config.zExpr = this.mathFields[`pz-${obj.id}`]?.latex(); break;
                             case 'curve': obj.config.xExpr = this.mathFields[`cx-${obj.id}`]?.latex(); obj.config.yExpr = this.mathFields[`cy-${obj.id}`]?.latex(); obj.config.zExpr = this.mathFields[`cz-${obj.id}`]?.latex(); break;
                             case 'vector': obj.config.fx = this.mathFields[`vx-${obj.id}`]?.latex(); obj.config.fy = this.mathFields[`vy-${obj.id}`]?.latex(); obj.config.fz = this.mathFields[`vz-${obj.id}`]?.latex(); break;
-                            case 'implicit': obj.config.equation = this.mathFields[`imp-${obj.id}`]?.latex(); break;
+ 
                         }
                     } catch(e) { this.showToast("Could not sync MathField state"); }
                 });
@@ -3323,6 +3240,17 @@
                     this.mathFields[this.activeCalculatorFieldId].focus();
                 }
                 this.activeCalculatorFieldId = null;
+            }
+
+            navigateToLinearAlgebra() {
+                // Show loading overlay
+                const overlay = document.getElementById('linear-algebra-overlay');
+                overlay.style.display = 'flex';
+                
+                // Simulate loading time and then navigate
+                setTimeout(() => {
+                    window.location.href = './Linear_Algebra/index.html';
+                }, 2000);
             }
 
             destroyMathFields(container) {      

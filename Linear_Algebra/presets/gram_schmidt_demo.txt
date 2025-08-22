@@ -1,0 +1,6 @@
+# Gram–Schmidt orthonormalization on 3 vectors
+v1 = (1, 1, 0)
+v2 = (1, 0, 1)
+v3 = (0, 1, 1)
+G = [v1, v2, v3]
+gramschmidt(G)

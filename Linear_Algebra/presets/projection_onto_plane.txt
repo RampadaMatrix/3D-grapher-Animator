@@ -1,0 +1,6 @@
+# Projection onto plane spanned by a and b
+x = (2, 1, 3)
+a = (1, 0, 0)
+b = (0, 1, 0)
+B = [a, b]
+proj(x, B)

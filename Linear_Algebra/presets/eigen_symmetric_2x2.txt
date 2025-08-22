@@ -1,0 +1,3 @@
+# Eigenvalues/vectors of symmetric 2x2
+S = [[2, 1], [1, 2]]
+eigen(S)
