@@ -1,6 +1,5 @@
 import pypandoc
 
-text = """# 6Axis Animation: 3D Mathematical Visualization Tool
 
 **6Axis Animation** is an interactive, web-based application for visualizing complex mathematical functions and objects in a 3D space.  
 It leverages **Three.js** for rendering and provides a powerful interface for creating, animating, and exploring explicit surfaces, parametric equations, vector fields, **linear algebra operations**, and more.
